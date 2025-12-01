@@ -1,4 +1,4 @@
 import { Text } from 'react-native';
 export default function Page() {
-  return <Text>Discover</Text>;  
+  return <Text>discover</Text>;  
 }
