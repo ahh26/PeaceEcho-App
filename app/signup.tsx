@@ -4,45 +4,58 @@ import { useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth } from "../firebase";
+import { createUserProfile } from "../lib/createUserProfile";
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const signUp = async () => {
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = userCredential.user.uid;
+        await createUserProfile(uid, {username, email });
+    
+        router.replace("../(tabs)");
     } catch (error: any) {
-      alert("Sign up failed: " + error.message);
+        alert("Sign up failed: " + error.message);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Create Account</Text>
+        <Text style={styles.title}>Create Account</Text>
 
-      <TextInput
-        style={styles.textInput}
-        placeholder="email"
-        value={email}
-        onChangeText={setEmail}
-      />
+        <TextInput
+            style={styles.textInput}
+            placeholder="email"
+            value={email}
+            onChangeText={setEmail}
+        />
 
-      <TextInput
-        style={styles.textInput}
-        placeholder="password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+        <TextInput
+            style={styles.textInput}
+            placeholder="Username"
+            value={username}
+            onChangeText={setUsername}
+        />
 
-      <TouchableOpacity style={styles.button} onPress={signUp}>
-        <Text style={styles.buttonText}>Sign Up</Text>
-      </TouchableOpacity>
+        <TextInput
+            style={styles.textInput}
+            placeholder="password"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+        />
 
-      <TouchableOpacity onPress={() => router.back()}>
-        <Text style={styles.link}>Already have an account? Log in</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={signUp}>
+            <Text style={styles.buttonText}>Sign Up</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.back()}>
+            <Text style={styles.link}>Already have an account? Log in</Text>
+        </TouchableOpacity>
     </SafeAreaView>
   );
 }
