@@ -32,6 +32,7 @@ export default function SignUp() {
             placeholder="email"
             value={email}
             onChangeText={setEmail}
+            autoCapitalize="none"
         />
 
         <TextInput
@@ -39,6 +40,7 @@ export default function SignUp() {
             placeholder="Username"
             value={username}
             onChangeText={setUsername}
+            autoCapitalize="none"
         />
 
         <TextInput
@@ -47,6 +49,7 @@ export default function SignUp() {
             secureTextEntry
             value={password}
             onChangeText={setPassword}
+            autoCapitalize="none"
         />
 
         <TouchableOpacity style={styles.button} onPress={signUp}>

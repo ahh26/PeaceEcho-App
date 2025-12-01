@@ -2,7 +2,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { auth } from "../firebase";
 import { getUserProfile } from "../lib/getUserProfile";
 
-const UserContext = createContext(null);
+
+const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);       // logged in user's profile
@@ -10,15 +11,30 @@ export const UserProvider = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
+      if (!firebaseUser) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
         const profile = await getUserProfile(firebaseUser.uid);
+
         setUser({
           uid: firebaseUser.uid,
-          ...profile,     // username, age, country, profilePic, etc.
+          email: firebaseUser.email,
+          ...profile,  // username, profilePic, etc.
         });
-      } else {
-        setUser(null);
+      } catch (err) {
+        console.log("Failed to load profile:", err);
+
+        // still allow login even if profile didn’t load
+        setUser({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+        });
       }
+
       setLoading(false);
     });
 
@@ -26,7 +42,7 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, setUser, loading }}>
+    <UserContext.Provider value={{ user, loading , setUser}}>
       {children}
     </UserContext.Provider>
   );

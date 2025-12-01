@@ -12,6 +12,7 @@ export default function Index() {
   const signIn = async () => {
     try {
       const user = await signInWithEmailAndPassword(auth, email, password);
+      router.replace("/(tabs)/discover");
     } catch (error: any) {
       alert("Sign in failed: " + error.message);
     }
@@ -35,6 +36,7 @@ export default function Index() {
         secureTextEntry
         value={password}
         onChangeText={setPassword}
+        autoCapitalize="none"
       />
 
       <TouchableOpacity style={styles.button} onPress={signIn}>
