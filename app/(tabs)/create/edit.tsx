@@ -1,7 +1,8 @@
-// app/(tabs)/create/edit.tsx
-
+import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useState } from "react";
 import {
     Alert,
@@ -14,6 +15,28 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { auth, db, storage } from "../../../firebase";
+
+
+function normalizeUri(uri: string) {
+  if (uri.startsWith("ph://")) {
+    return uri.replace("ph://", "assets-library://");
+  }
+  return uri;
+}
+
+async function uriToBlob(uri: string): Promise<Blob> {
+  const manipulated = await ImageManipulator.manipulateAsync(
+    uri,
+    [],
+    { compress: 0.9, format: ImageManipulator.SaveFormat.JPEG }
+  );
+
+  const response = await fetch(manipulated.uri);
+  const blob = await response.blob();
+  return blob;
+}
+
 
 export default function EditPostScreen() {
   const params = useLocalSearchParams();
@@ -45,7 +68,6 @@ export default function EditPostScreen() {
   const hasImages = images.length > 0;
   const selectedImage = hasImages ? images[selectedIndex] : undefined;
 
-  // --- add more photos ---
   const addMorePhotos = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       allowsMultipleSelection: true,
@@ -59,12 +81,10 @@ export default function EditPostScreen() {
     }
   };
 
-  // --- delete selected photo ---
   const deleteSelectedPhoto = () => {
     if (images.length === 0) return;
 
     if (images.length === 1) {
-      // if you delete last one, just go back out
       Alert.alert("No photos left", "Returning to previous screen.", [
         {
           text: "OK",
@@ -83,30 +103,62 @@ export default function EditPostScreen() {
 
 
   const cancelEditing = () => {
+    console.log("CANCEL BUTTON PRESSED");
     router.replace("/(tabs)/discover");
   };
 
-  //if no images at all, show a simple screen instead of crashing
-  if (!hasImages) {
-    return (
-      <SafeAreaView style={{ flex: 1, justifyContent: "center", padding: 20 }}>
-        <Text style={{ fontSize: 18, marginBottom: 10 }}>
-          No photos to edit.
-        </Text>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{
-            backgroundColor: "#4A6CF7",
-            padding: 12,
-            borderRadius: 10,
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ color: "#fff", fontSize: 16 }}>Go Back</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
+  const handlePost = async () => {
+    try {
+        if (images.length === 0) {
+            alert("Please select at least one photo");
+            return;
+        }
+        const user = auth.currentUser;
+        if (!user) {
+            alert("You must be logged in");
+            return;
+        }
+
+        const uploadedUrls: string[] = [];
+
+        // Upload each image
+        for (const uri of images) {
+            const blob = await uriToBlob(uri); 
+            const imageRef = ref(
+                storage,
+                `posts/${user.uid}/${Date.now()}-${Math.random()}.jpg`
+            );
+            await uploadBytes(imageRef, blob);
+            const downloadUrl = await getDownloadURL(imageRef);
+
+            uploadedUrls.push(downloadUrl);
+        }
+
+        // Create the Firestore document
+        await addDoc(collection(db, "posts"), {
+            uid: user.uid,
+            caption,
+            imageUrls: uploadedUrls,
+            createdAt: serverTimestamp(),
+        });
+
+        alert("Posted!");
+        router.replace("/(tabs)/discover");
+
+    } catch (error: any) {
+        console.log("FULL STORAGE ERROR >>>", JSON.stringify(error, null, 2));
+
+        if(error?.serverResponse){
+            console.log("🔥 SERVER RESPONSE >>>", error.serverResponse);
+        }
+
+        alert("Upload failed: " + error.message);
+    }
+};
+
+
+
+
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -165,12 +217,9 @@ export default function EditPostScreen() {
           onChangeText={setCaption}
         />
 
-        {/* Post button (just placeholder for now) */}
-        <TouchableOpacity
-          style={[styles.postButton, { opacity: 0.5 }]}
-          disabled
-        >
-          <Text style={styles.postButtonText}>Post</Text>
+        {/* Post button */}
+        <TouchableOpacity style={styles.postButton} onPress={handlePost}>
+            <Text style={styles.postButtonText}>Post</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

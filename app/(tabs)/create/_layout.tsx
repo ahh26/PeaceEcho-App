@@ -1,13 +1,11 @@
 import { Stack } from "expo-router";
 
-export default function CreateStack() {
+export default function CreateLayout() {
   return (
-    <Stack 
-        screenOptions={{ 
-            headerShown: false,
-            animation: "fade_from_bottom",
-            presentation: "modal"
-        }}
+    <Stack
+      screenOptions={{
+        headerShown: false,
+      }}
     >
       <Stack.Screen name="pick" />
       <Stack.Screen name="edit" />

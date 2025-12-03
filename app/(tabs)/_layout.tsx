@@ -1,4 +1,4 @@
-import { Tabs, router } from 'expo-router';
+import { router, Tabs } from 'expo-router';
 import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -44,10 +44,10 @@ export default function TabLayout() {
             <HapticTab
               {...props}
               onPress={() => {
-                router.push("/(tabs)/create/pick"); 
+                router.push("../create/pick"); 
               }}
             />
-          ),
+    ),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="add-circle-outline" size={size} color={color} />
           ),
