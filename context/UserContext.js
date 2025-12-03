@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth } from "../firebase";
-import { getUserProfile } from "../lib/getUserProfile";
+import { getUserProfile } from "../lib/userProfile";
 
 
 const UserContext = createContext();

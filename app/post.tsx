@@ -30,6 +30,26 @@ export default function PostDetail() {
 
   return(
     <ScrollView style={{ padding: 20 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}>
+        <Image
+          source={
+            post.userPhotoURL
+              ? { uri: post.userPhotoURL }
+              : { uri: "https://via.placeholder.com/80" }
+          }
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            marginRight: 12,
+            backgroundColor: "#ddd",
+          }}
+        />
+        <Text style={{ fontSize: 18, fontWeight: "600" }}>
+          {post.username || "Anonymous"}
+        </Text>
+      </View>
+
       <Image
         source={{ uri: post.imageUrls?.[0] }}
         style={{ width: "100%", height: 300, borderRadius: 12 }}

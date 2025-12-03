@@ -1,10 +1,11 @@
 import { router } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { auth } from "../firebase";
-import { createUserProfile } from "../lib/createUserProfile";
+import { auth, db } from "../firebase";
+
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
@@ -15,9 +16,23 @@ export default function SignUp() {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const uid = userCredential.user.uid;
-        await createUserProfile(uid, {username, email });
-    
-        router.replace("../(tabs)");
+        await setDoc(doc(db, "users" ,uid),{
+          uid,
+          email,
+          username,
+          createdAt: serverTimestamp(),
+          bio: "",
+          avatarUrl: "", //profile pic
+          region: "",
+          gender: "",
+          age: null,
+          followers: [],
+          following: [],
+          savedPosts: [],
+        });
+        
+        alert("Account created")
+        router.replace("/(tabs)/discover"); //go back to index(login) page or profile or discover
     } catch (error: any) {
         alert("Sign up failed: " + error.message);
     }

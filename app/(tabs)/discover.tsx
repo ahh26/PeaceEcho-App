@@ -79,6 +79,19 @@ export default function DiscoverScreen() {
                   router.push({pathname:"../post", params:{ id: post.id}})
                 }
               >
+                {/* UserHeader */}
+                <View style={styles.userHeader}>
+                  <Image
+                    source={
+                      post.userPhotoURL?{uri:post.userPhotoURL}:{uri: "https://via.placeholder.com/50"}
+                    }
+                    style={styles.avatar}
+                  />
+                  <Text style={styles.usernameText}>
+                    {post.username || "Anonymous"}
+                  </Text>
+                </View>
+
                 {/* Image */}
                 {post.imageUrls?.[0]?(
                   <Image
@@ -171,5 +184,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  userHeader:{
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    gap: 8,
+  },
+  avatar:{
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#ddd",
+  },
+  usernameText:{
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
   }
 });

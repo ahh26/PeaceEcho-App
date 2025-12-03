@@ -3,7 +3,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Alert,
     Image,
@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db, storage } from "../../../firebase";
-
+import { getUserProfile } from "../../../lib/userProfile";
 
 function normalizeUri(uri: string) {
   if (uri.startsWith("ph://")) {
@@ -40,6 +40,18 @@ async function uriToBlob(uri: string): Promise<Blob> {
 
 export default function EditPostScreen() {
   const params = useLocalSearchParams();
+  const [userProfile, setUserProfile] = useState<any>(null); 
+
+  useEffect(() => {
+    const load = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const data = await getUserProfile(user.uid);
+        setUserProfile(data);
+      }
+    };
+    load();
+  }, []);
 
   // --- safely get images from params ---
   let initialImages: string[] = [];
@@ -140,6 +152,8 @@ export default function EditPostScreen() {
             caption,
             imageUrls: uploadedUrls,
             createdAt: serverTimestamp(),
+            username: userProfile?.username || "Anonymous",
+            userPhotoURL: userProfile?.photoURL || null,
         });
 
         alert("Posted!");
@@ -149,7 +163,7 @@ export default function EditPostScreen() {
         console.log("FULL STORAGE ERROR >>>", JSON.stringify(error, null, 2));
 
         if(error?.serverResponse){
-            console.log("🔥 SERVER RESPONSE >>>", error.serverResponse);
+            console.log("SERVER RESPONSE >>>", error.serverResponse);
         }
 
         alert("Upload failed: " + error.message);

@@ -5,7 +5,6 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 
-
 // Your fixed config
 const firebaseConfig = {
   apiKey: "AIzaSyCjyRrdeniKQ3KEamG2YML-mszQ67b1k78",
@@ -17,19 +16,19 @@ const firebaseConfig = {
 };
 
 // Initialize app ONLY if not already created
-export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 // Initialize Auth safely
-let _auth;
-if (!getApps().length) {
-  _auth = initializeAuth(app, {
+let authInstance;
+try {
+  authInstance = initializeAuth(app, {
     persistence: getReactNativePersistence(AsyncStorage),
   });
-} else {
-  _auth = getAuth(app);
+}catch(e) {
+  authInstance = getAuth(app);
 }
 
-export const auth = _auth;
+export const auth = authInstance;
 
 // Firestore + Storage
 export const db = getFirestore(app);
