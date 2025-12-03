@@ -19,7 +19,15 @@ export default function RootLayout() {
           <Stack.Screen name="signup" options={{ title: "Sign Up" }} />
 
           {/* Tabs come AFTER login */}
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }}/>
+          <Stack.Screen
+            name="post"
+            options={{
+              title: "Back",
+              headerBackTitle: "Back",
+              headerShown: true,
+            }}
+          />
 
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
