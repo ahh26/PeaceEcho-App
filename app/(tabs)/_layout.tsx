@@ -44,7 +44,7 @@ export default function TabLayout() {
             <HapticTab
               {...props}
               onPress={() => {
-                router.push("../create/pick"); 
+                router.push("/(tabs)/create/pick"); 
               }}
             />
     ),
@@ -72,6 +72,14 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: "Profile",
+          tabBarButton: (props) =>(
+            <HapticTab
+              {...props}
+              onPress={() => {
+                router.push("/(tabs)/profile"); 
+              }}
+            />
+          ),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-outline" size={size} color={color} />
           ),

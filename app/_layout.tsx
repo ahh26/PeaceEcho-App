@@ -23,7 +23,7 @@ export default function RootLayout() {
           <Stack.Screen
             name="post"
             options={{
-              title: "Back",
+              title: "",
               headerBackTitle: "Back",
               headerShown: true,
             }}

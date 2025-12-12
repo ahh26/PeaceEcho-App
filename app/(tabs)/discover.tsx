@@ -76,7 +76,7 @@ export default function DiscoverScreen() {
                 key={post.id}
                 style={styles.card}
                 onPress={()=>
-                  router.push({pathname:"../post", params:{ id: post.id}})
+                  router.push({pathname: "/post", params: { id: post.id } })
                 }
               >
                 {/* UserHeader */}

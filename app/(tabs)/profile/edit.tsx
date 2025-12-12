@@ -1,4 +1,5 @@
 import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -10,8 +11,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { auth } from "../../firebase";
-import { getUserProfile, updateUserProfile, uploadProfileImage } from "../../lib/userProfile";
+import { auth } from "../../../firebase";
+import { getUserProfile, updateUserProfile, uploadProfileImage } from "../../../lib/userProfile";
 
 type UserProfile = {
   username?: string;
@@ -20,7 +21,7 @@ type UserProfile = {
   photoURL?: string;
 };
 
-export default function ProfileScreen() {
+export default function ProfileEdit() {
   const user = auth.currentUser;
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -54,6 +55,7 @@ export default function ProfileScreen() {
     loadProfile();
   }, [user]);
 
+  //TODO: when saving, the profile/username is not updated correctly
   const handleSave = async () => {
     if(!user)return;
     setSaving(true);
@@ -65,7 +67,9 @@ export default function ProfileScreen() {
         bio,
         email: (prev && prev.email) || user.email || "",
       }));
+      router.push("/(tabs)/profile"); 
     }catch(err){
+      console.log("SAVE ERROR:", err);
       alert("Failed to save profile");
     }finally{
       setSaving(false);
@@ -136,7 +140,7 @@ export default function ProfileScreen() {
       <View style={styles.avatarContainer}>
         <Image
           source={
-            photoURL?{uri:photoURL}:require("../../assets/images/default-avatar.png")
+            photoURL?{uri:photoURL}:require("../../../assets/images/default-avatar.png")
           }
           style={styles.avatar}
         />
@@ -163,6 +167,7 @@ export default function ProfileScreen() {
         style={styles.input}
         value={username}
         onChangeText={setUsername}
+        autoCapitalize="none"
         placeholder="Enter username"
       />
 
@@ -172,9 +177,13 @@ export default function ProfileScreen() {
         style={[styles.input, styles.bioInput]}
         value={bio}
         onChangeText={setBio}
+        autoCapitalize="none"
         placeholder="Tell people a little about you"
         multiline
       />
+
+      {/* */}
+      <Text style={styles.label}>Country</Text>
 
       {/* Save */}
       <TouchableOpacity 
@@ -242,6 +251,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     marginBottom: 8,
+    
   },
   bioInput:{
     height: 80,
