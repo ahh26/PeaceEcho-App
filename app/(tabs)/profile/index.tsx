@@ -1,13 +1,8 @@
+import ProfileView from "@/components/ProfileView";
 import { getUserProfile } from "@/lib/userProfile";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
-import {
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth } from "../../../firebase";
 
@@ -16,129 +11,138 @@ type UserProfile = {
   email?: string;
   bio?: string;
   photoURL?: string;
+  followerCount?: number;
+  followingCount?: number;
+  postCount?: number;
+  savedCount?: number;
 };
 
+type GridItem = { id: string; label: string };
 
-export default function ProfileScreen (){
-    const user = auth.currentUser;
+export default function ProfileScreen() {
+  const user = auth.currentUser;
 
-    const [profile, setProfile] = useState<UserProfile | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [username, setUsername] = useState("");
-    const [bio, setBio] = useState("");
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"posts" | "saved">("posts");
 
+  const [posts, setPosts] = useState<GridItem[]>([]);
+  const [saved, setSaved] = useState<GridItem[]>([]);
 
-      useEffect(() => {
-        const loadProfile = async() => {
-          if(!user){
-            setLoading(false);
-            return;
-          }
-          try{
-            const data = await getUserProfile(user.uid);
-            if(data){
-              const typed = data as UserProfile;
-              setProfile(typed);
-              setUsername(typed.username ?? "");
-              setBio(typed.bio ?? "");
-            }
-          }catch(err){
-            console.log("Failed to load profile: ", err);
-          }finally{
-            setLoading(false);
-          }
-        };
-        loadProfile();
-      }, [user]);
-    
+  useEffect(() => {
+    let cancelled = false;
 
-    const photoURL = profile?.photoURL;
-    return(
-        <SafeAreaView style={styles.container}>
+    const loadProfile = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const data = await getUserProfile(user.uid);
+        if (!cancelled) setProfile((data ?? null) as UserProfile | null);
+      } catch (err) {
+        console.log("Failed to load profile: ", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
 
-            {/*Profile pic */}
-            <View style={styles.avatarContainer}>
-                <Image
-                source={photoURL?{uri:photoURL}:require("../../../assets/images/default-avatar.png")}
-                style={styles.avatar}
-                />
-            </View>
+    loadProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid]);
 
-            {/*Edit Profile*/}
-            <TouchableOpacity 
-                style={styles.editButton}
-                onPress={() => {
-                    router.push("/(tabs)/profile/edit"); 
-                }}
-            >
-                <Text style={styles.label}>Edit Profile</Text>
-            </TouchableOpacity>
+  const photoSource = useMemo(() => {
+    const url = profile?.photoURL;
+    return url
+      ? { uri: url }
+      : require("../../../assets/images/default-avatar.png");
+  }, [profile?.photoURL]);
 
-            {/*Username*/}
-            <Text style={styles.label}>Username</Text>
-            <Text style={styles.text}>{username}</Text>
-
-            {/*Bio*/}
-            <Text style={styles.label}>Bio</Text>
-            <Text style={styles.text}>{bio}</Text>
-
-            {/*Following + Followers*/}
-            <TouchableOpacity>
-                <Text style={styles.label}>Following</Text>
-            </TouchableOpacity>
-          
-            <TouchableOpacity>
-                <Text style={styles.label}>Followers</Text>
-            </TouchableOpacity>
-
-            {/*Posts + Saved Posts*/}
-            <TouchableOpacity>
-                <Text style={styles.label}>Posts</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity>
-                <Text style={styles.label}>Saved</Text>
-            </TouchableOpacity>
-
-        </SafeAreaView>
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.center}>
+        <Text>Loading profile...</Text>
+      </SafeAreaView>
     );
+  }
+
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.center}>
+        <Text style={{ marginBottom: 12 }}>You’re not logged in.</Text>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => router.replace("/")}
+        >
+          <Text style={styles.primaryButtonText}>Go to Login</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  const followers = profile?.followerCount ?? 0;
+  const following = profile?.followingCount ?? 0;
+  const postCount = profile?.postCount ?? posts.length;
+  const savedCount = profile?.savedCount ?? saved.length;
+
+  const openConnections = (tab: "followers" | "following") => {
+    router.push({
+      pathname: "/(tabs)/profile/connections",
+      params: { tab },
+    });
+  };
+
+  const gridData = activeTab === "posts" ? posts : saved;
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ProfileView
+        profile={{
+          username: profile?.username ?? "Unnamed",
+          email: profile?.email ?? user.email ?? "",
+          bio: profile?.bio ?? "",
+          photoURL: profile?.photoURL,
+        }}
+        photoSource={photoSource}
+        followers={followers}
+        following={following}
+        postCount={postCount}
+        savedCount={savedCount}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        gridData={gridData}
+        onPressEdit={() => router.push("/(tabs)/profile/edit")}
+        onPressFollowers={() => openConnections("followers")}
+        onPressFollowing={() => openConnections("following")}
+      />
+    </SafeAreaView>
+  );
 }
 
-const styles= StyleSheet.create({
-    center:{
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    container:{
-        flex: 1,
-        padding: 24,
-        backgroundColor: "#fff",
-    },
-    avatarContainer:{
-        alignItems: "center",
-        marginBottom: 24,
-    },
-    avatar:{
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        backgroundColor: "#eee",
-    },
-    label:{
-        fontSize: 14,
-        fontWeight: "600",
-        marginTop: 8,
-        marginBottom: 4, 
-    },
-    text:{
-        fontSize: 14,
-        fontWeight: "300",
-        marginTop: 8,
-        marginBottom: 4, 
-    },
-    editButton:{
-        alignItems: "center",
-        justifyContent: "center",
-    }
+const styles = StyleSheet.create({
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    backgroundColor: "#fff",
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 24,
+    backgroundColor: "#fff",
+  },
+  primaryButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  primaryButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
 });

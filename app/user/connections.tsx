@@ -2,16 +2,16 @@ import { router, useLocalSearchParams } from "expo-router";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    FlatList,
+    Image,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { auth, db } from "../../../firebase";
+import { db } from "../../firebase"; // ✅ note path (app/user -> root)
 
 type ConnectionItem = {
   id: string;
@@ -21,13 +21,14 @@ type ConnectionItem = {
   createdAt?: any;
 };
 
-export default function ConnectionsScreen() {
+export default function UserConnectionsScreen() {
   const params = useLocalSearchParams<{
+    uid?: string;
     tab?: string;
     username?: string;
-    uid?: string;
   }>();
-  const user = auth.currentUser;
+
+  const targetUid = typeof params.uid === "string" ? params.uid : undefined;
 
   const initialTab = useMemo<"followers" | "following">(() => {
     return params.tab === "following" ? "following" : "followers";
@@ -38,26 +39,20 @@ export default function ConnectionsScreen() {
   );
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
-
   const [followers, setFollowers] = useState<ConnectionItem[]>([]);
   const [following, setFollowing] = useState<ConnectionItem[]>([]);
   const [loadingFollowers, setLoadingFollowers] = useState(true);
   const [loadingFollowing, setLoadingFollowing] = useState(true);
 
-  // If user comes in again with a different param tab
   useEffect(() => setActiveTab(initialTab), [initialTab]);
-
-  // Clear search when tab switches
   useEffect(() => setSearch(""), [activeTab]);
 
-  //Live Followers
+  // Followers
   useEffect(() => {
-    if (!user) return;
+    if (!targetUid) return;
+
     setLoadingFollowers(true);
-    const ref = collection(db, "users", user.uid, "followers");
+    const ref = collection(db, "users", targetUid, "followers");
     const q = query(ref, orderBy("createdAt", "desc"));
 
     const unsub = onSnapshot(
@@ -76,13 +71,14 @@ export default function ConnectionsScreen() {
     );
 
     return () => unsub();
-  }, [user?.uid]);
+  }, [targetUid]);
 
-  //Live Following
+  // Following
   useEffect(() => {
-    if (!user) return;
+    if (!targetUid) return;
+
     setLoadingFollowing(true);
-    const ref = collection(db, "users", user.uid, "following");
+    const ref = collection(db, "users", targetUid, "following");
     const q = query(ref, orderBy("createdAt", "desc"));
 
     const unsub = onSnapshot(
@@ -101,7 +97,7 @@ export default function ConnectionsScreen() {
     );
 
     return () => unsub();
-  }, [user?.uid]);
+  }, [targetUid]);
 
   const rawData = activeTab === "followers" ? followers : following;
   const loading =
@@ -111,6 +107,19 @@ export default function ConnectionsScreen() {
     const name = (item.username ?? "").toLowerCase();
     return name.includes(search.trim().toLowerCase());
   });
+
+  const headerTitle =
+    typeof params.username === "string" && params.username
+      ? params.username
+      : "Connections";
+
+  if (!targetUid) {
+    return (
+      <SafeAreaView style={styles.center}>
+        <Text>Missing uid.</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -123,12 +132,10 @@ export default function ConnectionsScreen() {
           <Text style={styles.headerIcon}>‹</Text>
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>
-          {" "}
-          {user?.displayName || "Connections"}{" "}
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {headerTitle}
         </Text>
 
-        {/* Right-side placeholder button to balance layout */}
         <View style={styles.headerBtn} />
       </View>
 
@@ -169,7 +176,7 @@ export default function ConnectionsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
+      {/* Search */}
       <View style={styles.searchContainer}>
         <TextInput
           placeholder={`Search ${activeTab}...`}
@@ -187,6 +194,9 @@ export default function ConnectionsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingVertical: 8 }}
         ItemSeparatorComponent={() => <View style={styles.sep} />}
+        ListHeaderComponent={
+          loading ? <Text style={styles.loadingText}>Loading...</Text> : null
+        }
         renderItem={({ item }) => (
           <View style={styles.row}>
             <Image
@@ -197,16 +207,18 @@ export default function ConnectionsScreen() {
               }
               style={styles.avatar}
             />
+
             <View style={{ flex: 1 }}>
               <Text style={styles.rowTitle}>{item.username || "User"}</Text>
             </View>
 
+            {/* View their profile */}
             <TouchableOpacity
               style={styles.actionBtn}
               onPress={() =>
                 router.push({
                   pathname: "/user",
-                  params: { uid: item.id }, // optional: only if you have a user profile page
+                  params: { uid: item.id },
                 })
               }
             >
@@ -217,11 +229,13 @@ export default function ConnectionsScreen() {
         ListEmptyComponent={
           <View style={{ paddingVertical: 24 }}>
             <Text style={styles.emptyText}>
-              {search
-                ? "No matches."
-                : activeTab === "followers"
-                  ? "No followers yet."
-                  : "Not following anyone yet."}
+              {loading
+                ? " "
+                : search
+                  ? "No matches."
+                  : activeTab === "followers"
+                    ? "No followers yet."
+                    : "Not following anyone yet."}
             </Text>
           </View>
         }
@@ -232,50 +246,35 @@ export default function ConnectionsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 16 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 10,
   },
-  headerBtn: {
-    width: 40,
-    alignItems: "center",
-  },
-  headerIcon: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
+  headerBtn: { width: 40, alignItems: "center" },
+  headerIcon: { fontSize: 18, fontWeight: "700" },
   headerTitle: {
+    flex: 1,
+    textAlign: "center",
     fontSize: 16,
     fontWeight: "700",
   },
+
   tabRow: {
     flexDirection: "row",
     marginTop: 8,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
   },
-  tabBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  tabBtnActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: "#111",
-  },
-  tabText: {
-    fontSize: 13,
-    color: "#666",
-    fontWeight: "600",
-  },
-  tabTextActive: {
-    color: "#111",
-  },
+  tabBtn: { flex: 1, paddingVertical: 10, alignItems: "center" },
+  tabBtnActive: { borderBottomWidth: 2, borderBottomColor: "#111" },
+  tabText: { fontSize: 13, color: "#666", fontWeight: "600" },
+  tabTextActive: { color: "#111" },
+
   searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
     backgroundColor: "#f2f2f2",
     borderRadius: 10,
     paddingHorizontal: 10,
@@ -283,14 +282,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 4,
   },
-  searchIcon: {
-    fontSize: 14,
-    marginRight: 6,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-  },
+  searchInput: { fontSize: 14 },
+
+  loadingText: { fontSize: 12, color: "#666", paddingVertical: 8 },
   sep: { height: 1, backgroundColor: "#f0f0f0" },
 
   row: {
@@ -299,14 +293,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 12,
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#eee",
-  },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#eee" },
   rowTitle: { fontSize: 14, fontWeight: "700" },
-  rowSub: { fontSize: 12, color: "#666", marginTop: 2 },
 
   actionBtn: {
     paddingVertical: 8,
