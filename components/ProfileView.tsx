@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
     FlatList,
@@ -13,6 +14,13 @@ export type ProfileViewProfile = {
   email?: string;
   bio?: string;
   photoURL?: string;
+  region?: {
+    country?: string;
+    countryCode?: string;
+    region?: string;
+    city?: string;
+    source?: "manual" | "gps";
+  };
 };
 
 type GridItem = { id: string; label: string };
@@ -58,6 +66,13 @@ export default function ProfileView({
   const username = profile.username ?? "Unnamed";
   const email = profile.email ?? "";
   const bio = profile.bio ?? "";
+  const regionText = [
+    profile.region?.city,
+    profile.region?.region,
+    profile.region?.country,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <View style={styles.container}>
@@ -66,7 +81,13 @@ export default function ProfileView({
         <Image source={photoSource} style={styles.avatar} />
         <View style={{ flex: 1 }}>
           <Text style={styles.username}>{username}</Text>
-          {!!email && <Text style={styles.subtext}>{email}</Text>}
+          {/* {!!email && <Text style={styles.subtext}>{email}</Text>} */}
+          {!!regionText && (
+            <View style={styles.regionRow}>
+              <Ionicons name="location-outline" size={14} color="#6B7280" />
+              <Text style={styles.regionText}>{regionText}</Text>
+            </View>
+          )}
 
           {showEdit && (
             <TouchableOpacity style={styles.editButton} onPress={onPressEdit}>
@@ -233,4 +254,15 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   gridItemText: { fontSize: 12, color: "#444", textAlign: "center" },
+  regionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
+  },
+  regionText: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontWeight: "600",
+  },
 });
