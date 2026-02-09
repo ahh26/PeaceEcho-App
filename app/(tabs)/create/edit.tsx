@@ -1,3 +1,4 @@
+import { State } from "country-state-city";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
@@ -8,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import CountryPicker from "react-native-country-picker-modal";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db, storage } from "../../../firebase";
 import { getUserProfile } from "../../../lib/userProfile";
@@ -145,6 +148,9 @@ export default function EditPostScreen() {
 
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [postLocation, setPostLocation] = useState<any>(null);
+  const [countryVisible, setCountryVisible] = useState(false);
+  const [stateVisible, setStateVisible] = useState(false);
+  const [stateSearch, setStateSearch] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -184,6 +190,19 @@ export default function EditPostScreen() {
       setImages(initialImages);
     }
   }, [initialImages, images.length]);
+
+  //state list
+  const states = useMemo(() => {
+    const cc = postLocation?.countryCode;
+    if (!cc) return [];
+    return State.getStatesOfCountry(cc) || [];
+  }, [postLocation?.countryCode]);
+
+  const filteredStates = useMemo(() => {
+    const q = stateSearch.trim().toLowerCase();
+    if (!q) return states;
+    return states.filter((s) => s.name.toLowerCase().includes(q));
+  }, [states, stateSearch]);
 
   const addMorePhotos = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -243,16 +262,14 @@ export default function EditPostScreen() {
         uploadedUrls.push(downloadUrl);
       }
 
-      const postLocation = userProfile?.region
-        ? {
-            countryCode: userProfile.region.countryCode ?? "",
-            country: userProfile.region.country ?? "",
-            stateCode: userProfile.region.stateCode ?? "",
-            stateName: userProfile.region.stateName ?? "",
-            city: userProfile.region.city ?? "",
-            source: "profile",
-          }
-        : null;
+      const hasPostLocation =
+        locationEnabled &&
+        !!(
+          postLocation?.countryCode ||
+          postLocation?.country ||
+          postLocation?.stateName ||
+          postLocation?.city
+        );
 
       await addDoc(collection(db, "posts"), {
         uid: user.uid,
@@ -261,7 +278,8 @@ export default function EditPostScreen() {
         createdAt: serverTimestamp(),
         username: userProfile?.username || "Anonymous",
         userPhotoURL: userProfile?.photoURL || null,
-        postLocation: locationEnabled ? postLocation : null,
+
+        ...(hasPostLocation ? { postLocation } : {}),
       });
 
       router.replace("/(tabs)/discover");
@@ -363,10 +381,38 @@ export default function EditPostScreen() {
                 if (locationEnabled) {
                   setLocationEnabled(false);
                   setPostLocation(null);
-                } else {
-                  setLocationEnabled(true);
-                  setPostLocation(userProfile?.region ?? null); // default = profile
+                  return;
                 }
+
+                setLocationEnabled(true);
+
+                const r = userProfile?.region;
+                const hasAnything = !!(
+                  r?.countryCode ||
+                  r?.country ||
+                  r?.stateName ||
+                  r?.city
+                );
+
+                setPostLocation(
+                  hasAnything
+                    ? {
+                        countryCode: r.countryCode ?? "",
+                        country: r.country ?? "",
+                        stateCode: r.stateCode ?? "",
+                        stateName: r.stateName ?? "",
+                        city: r.city ?? "",
+                        source: "profile",
+                      }
+                    : {
+                        countryCode: "",
+                        country: "",
+                        stateCode: "",
+                        stateName: "",
+                        city: "",
+                        source: "manual",
+                      }
+                );
               }}
             >
               <Text style={{ fontWeight: "800", color: "#2563EB" }}>
@@ -376,17 +422,107 @@ export default function EditPostScreen() {
           </View>
 
           {locationEnabled && (
-            <Text style={{ marginTop: 8, fontSize: 13, color: "#374151" }}>
-              {postLocation
-                ? [
-                    postLocation.city,
-                    postLocation.stateName,
-                    postLocation.country,
-                  ]
-                    .filter(Boolean)
-                    .join(", ")
-                : "No location selected"}
-            </Text>
+            <>
+              {/* Preview text */}
+              <Text style={{ marginTop: 8, fontSize: 13, color: "#374151" }}>
+                {postLocation
+                  ? [
+                      postLocation.city,
+                      postLocation.stateName,
+                      postLocation.country,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")
+                  : "No location selected"}
+              </Text>
+
+              {/* Manual controls */}
+              <View style={{ marginTop: 12 }}>
+                {/* Country */}
+                <Text style={styles.smallLabel}>Country</Text>
+                <TouchableOpacity
+                  style={styles.countryInput}
+                  onPress={() => setCountryVisible(true)}
+                  disabled={busy}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <CountryPicker
+                      withFlag
+                      withFilter
+                      withCountryNameButton={false}
+                      withCallingCode={false}
+                      visible={countryVisible}
+                      countryCode={
+                        (postLocation?.countryCode as any) || undefined
+                      }
+                      onClose={() => setCountryVisible(false)}
+                      onSelect={(c) => {
+                        const name =
+                          typeof c.name === "string" ? c.name : c.name.common;
+
+                        setPostLocation((prev: any) => ({
+                          ...(prev || {}),
+                          countryCode: c.cca2,
+                          country: name,
+                          stateCode: "",
+                          stateName: "",
+                          city: "",
+                          source: "manual",
+                        }));
+                        setStateSearch("");
+                        setCountryVisible(false);
+                      }}
+                    />
+                    <Text style={styles.countryText}>
+                      {postLocation?.country || "Select country"}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* State / Province */}
+                <Text style={styles.smallLabel}>State / Province</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.countryInput,
+                    !postLocation?.countryCode && { opacity: 0.5 },
+                  ]}
+                  onPress={() => {
+                    if (!postLocation?.countryCode) {
+                      Alert.alert("Choose a country first");
+                      return;
+                    }
+                    setStateVisible(true);
+                  }}
+                  disabled={!postLocation?.countryCode || busy}
+                >
+                  <Text style={styles.countryText}>
+                    {postLocation?.stateName || "Select state/province"}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* City */}
+                <Text style={styles.smallLabel}>City</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="City"
+                  value={postLocation?.city ?? ""}
+                  onChangeText={(t) =>
+                    setPostLocation((prev: any) => ({
+                      ...(prev || {}),
+                      city: t,
+                      source: "manual",
+                    }))
+                  }
+                  editable={!busy}
+                />
+              </View>
+            </>
           )}
         </View>
 
@@ -400,6 +536,68 @@ export default function EditPostScreen() {
 
         <View style={{ height: 30 }} />
       </ScrollView>
+
+      <Modal visible={stateVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select state / province</Text>
+              <TouchableOpacity onPress={() => setStateVisible(false)}>
+                <Text style={styles.modalClose}>Close</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.modalSearch}
+              placeholder="Search…"
+              value={stateSearch}
+              onChangeText={setStateSearch}
+            />
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {filteredStates.map((s) => (
+                <TouchableOpacity
+                  key={`${s.countryCode}-${s.isoCode}`}
+                  style={styles.stateItem}
+                  onPress={() => {
+                    setPostLocation((prev: any) => ({
+                      ...(prev || {}),
+                      stateCode: s.isoCode,
+                      stateName: s.name,
+                      source: "manual",
+                    }));
+                    setStateVisible(false);
+                  }}
+                >
+                  <Text style={styles.stateItemText}>{s.name}</Text>
+                  <Text style={styles.stateItemSub}>{s.isoCode}</Text>
+                </TouchableOpacity>
+              ))}
+
+              {filteredStates.length === 0 && (
+                <Text style={styles.emptyText}>No matches.</Text>
+              )}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.modalClearState}
+              onPress={() => {
+                setPostLocation((prev: any) => ({
+                  ...(prev || {}),
+                  stateCode: "",
+                  stateName: "",
+                  source: "manual",
+                }));
+                setStateVisible(false);
+              }}
+            >
+              <Text style={styles.modalClearStateText}>
+                Clear state/province
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -480,4 +678,85 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   postingText: { color: "#374151", fontWeight: "700" },
+
+  smallLabel: {
+    marginTop: 10,
+    marginBottom: 6,
+    fontSize: 12,
+    fontWeight: "900",
+    color: "#374151",
+  },
+  countryInput: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    backgroundColor: "#FFF",
+  },
+  countryText: { fontSize: 14, fontWeight: "800", color: "#111827" },
+  input: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 14,
+    backgroundColor: "#FFF",
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "flex-end",
+  },
+  modalCard: {
+    backgroundColor: "#fff",
+    padding: 16,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  modalTitle: { fontSize: 16, fontWeight: "900" },
+  modalClose: { fontSize: 14, fontWeight: "900", color: "#111827" },
+  modalSearch: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    marginBottom: 10,
+  },
+
+  stateItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  stateItemText: { fontSize: 14, fontWeight: "900", color: "#111827" },
+  stateItemSub: { fontSize: 12, color: "#6B7280", fontWeight: "800" },
+  emptyText: { paddingVertical: 18, textAlign: "center", color: "#6B7280" },
+
+  modalClearState: {
+    marginTop: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    alignItems: "center",
+  },
+  modalClearStateText: { fontWeight: "900", color: "#111827" },
 });

@@ -43,7 +43,7 @@ type UserProfile = {
   email?: string;
   bio?: string;
   photoURL?: string;
-  region?: Region & { region?: string }; // backward compat: old field "region" (string)
+  region?: Region & { region?: string };
 };
 
 export default function ProfileEdit() {
@@ -126,9 +126,6 @@ export default function ProfileEdit() {
           setUsername(typed.username ?? "");
           setBio(typed.bio ?? "");
 
-          // Backward compat:
-          // old: region.region (string)
-          // new: region.stateName / region.stateCode
           const oldRegionText = (typed.region as any)?.region as
             | string
             | undefined;
@@ -163,8 +160,7 @@ export default function ProfileEdit() {
       const usernameChanged = username.trim() !== (profile?.username ?? "");
       const bioChanged = bio !== (profile?.bio ?? "");
 
-      // If user cleared everything, store an empty object (works with your ProfileView logic)
-      // You can switch to deleting the field later if you want.
+      // If user cleared everything, store an empty object
       const cleanRegion = cleanObject(region);
       const isEmptyRegion =
         !cleanRegion.countryCode &&
@@ -173,19 +169,17 @@ export default function ProfileEdit() {
         !cleanRegion.stateName &&
         !cleanRegion.city;
 
-      // IMPORTANT: keep backward compat by also writing "region" text
-      // (optional, but helpful if any old screens still read profile.region.region)
       const regionPayload: any = isEmptyRegion
         ? {}
         : {
             ...cleanRegion,
-            region: cleanRegion.stateName || "", // legacy alias
+            region: cleanRegion.stateName || "",
           };
 
       await updateProfileAndBackfillPosts({
         uid: user.uid,
         newUsername: usernameChanged ? username.trim() : undefined,
-        newPhotoURL: undefined, // Save button shouldn't backfill photo unless it changed via upload
+        newPhotoURL: undefined,
         newBio: bioChanged ? bio : undefined,
         newRegion: regionPayload,
       });
@@ -252,10 +246,10 @@ export default function ProfileEdit() {
 
       await updateProfileAndBackfillPosts({
         uid: user.uid,
-        newUsername: username.trim(), // ok to backfill username on photo upload
-        newPhotoURL: downloadUrl, // ✅ backfill posts photo here
+        newUsername: username.trim(),
+        newPhotoURL: downloadUrl,
         newBio: bio,
-        newRegion: regionPayload, // user doc update
+        newRegion: regionPayload,
       });
 
       setProfile((prev) => ({
@@ -352,6 +346,8 @@ export default function ProfileEdit() {
     .filter(Boolean)
     .join(", ");
 
+  const openCountryPicker = () => setCountryVisible(true);
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -437,13 +433,30 @@ export default function ProfileEdit() {
 
             {/* Country */}
             <Text style={styles.smallLabel}>Country</Text>
+
             <TouchableOpacity
               style={styles.countryInput}
-              onPress={() => setCountryVisible(true)}
+              onPress={openCountryPicker}
+              activeOpacity={0.85}
             >
-              <Text style={styles.countryText}>
-                {region.country || "Select country"}
-              </Text>
+              <View style={styles.countryRow}>
+                {/* Flag */}
+                {!!region.countryCode && (
+                  <CountryPicker
+                    withFlag
+                    withCountryNameButton={false}
+                    withCallingCode={false}
+                    countryCode={region.countryCode as any}
+                    onSelect={() => {}}
+                    containerButtonStyle={{ padding: 0 }}
+                  />
+                )}
+
+                {/* Text */}
+                <Text style={styles.countryText}>
+                  {region.country || "Select country"}
+                </Text>
+              </View>
             </TouchableOpacity>
 
             <CountryPicker
@@ -475,7 +488,7 @@ export default function ProfileEdit() {
                 setStateSearch("");
                 setCountryVisible(false);
               }}
-              containerButtonStyle={{ display: "none" }}
+              containerButtonStyle={{ display: "none" }} // IMPORTANT
             />
 
             {/* State / Province */}
@@ -780,4 +793,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalClearStateText: { fontWeight: "800", color: "#111827" },
+  countryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
 });
