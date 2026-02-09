@@ -1,8 +1,9 @@
 import ProfileView from "@/components/ProfileView";
 import { getUserProfile } from "@/lib/userProfile";
+import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { Text } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type UserProfile = {
@@ -47,7 +48,9 @@ export default function UserScreen() {
 
   const photoSource = useMemo(() => {
     const url = profile?.photoURL;
-    return url ? { uri: url } : require("../assets/images/default-avatar.png");
+    return url
+      ? { uri: url }
+      : require("../../assets/images/default-avatar.png");
   }, [profile?.photoURL]);
 
   if (loading) {
@@ -70,6 +73,21 @@ export default function UserScreen() {
     <SafeAreaView
       style={{ flex: 1, paddingHorizontal: 24, backgroundColor: "#fff" }}
     >
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginBottom: 8,
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{ paddingRight: 12 }}
+        >
+          <Ionicons name="chevron-back" size={28} color="#111" />
+        </TouchableOpacity>
+      </View>
+
       <ProfileView
         profile={{
           username: profile.username ?? "User",
@@ -88,7 +106,7 @@ export default function UserScreen() {
         onPressEdit={() => {}}
         onPressFollowers={() =>
           router.push({
-            pathname: "/user/connections",
+            pathname: "/connections",
             params: {
               uid,
               username: profile.username ?? "User",
@@ -98,7 +116,7 @@ export default function UserScreen() {
         }
         onPressFollowing={() =>
           router.push({
-            pathname: "/user/connections",
+            pathname: "/connections",
             params: {
               uid,
               username: profile.username ?? "User",

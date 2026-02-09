@@ -89,8 +89,12 @@ export default function ProfileScreen() {
 
   const openConnections = (tab: "followers" | "following") => {
     router.push({
-      pathname: "/(tabs)/profile/connections",
-      params: { tab },
+      pathname: "/connections",
+      params: {
+        uid: user.uid,
+        username: profile?.username ?? "Me",
+        tab,
+      },
     });
   };
 

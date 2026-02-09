@@ -113,39 +113,63 @@ export default function PostDetail() {
             paddingBottom: 110 + insets.bottom, // leave room for sticky bar
           }}
         >
-          {/* Clickable header */}
-          <TouchableOpacity
-            activeOpacity={0.7}
+          {/* Top header (connections-style) */}
+          <View
             style={{
               flexDirection: "row",
               alignItems: "center",
-              marginBottom: 12,
+              gap: 10,
+              paddingTop: 6,
+              paddingBottom: 10,
             }}
-            onPress={goToUser}
           >
-            <Image
-              source={
-                post.userPhotoURL
-                  ? { uri: post.userPhotoURL }
-                  : { uri: "https://via.placeholder.com/80" }
-              }
+            {/* Back button */}
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{ paddingRight: 12 }}
+            >
+              <Ionicons name="chevron-back" size={28} color="#111" />
+            </TouchableOpacity>
+            {/* Tappable user area */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={goToUser}
               style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                marginRight: 10,
-                backgroundColor: "#ddd",
+                flexDirection: "row",
+                alignItems: "center",
+                flex: 1,
+                gap: 10,
               }}
-            />
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 16, fontWeight: "700" }}>
-                {post.username || "Anonymous"}
-              </Text>
-              <Text style={{ fontSize: 12, color: "#666" }}>
-                @{String(post.uid ?? "user").slice(0, 6)}
-              </Text>
-            </View>
-          </TouchableOpacity>
+            >
+              <Image
+                source={
+                  post.userPhotoURL
+                    ? { uri: post.userPhotoURL }
+                    : { uri: "https://via.placeholder.com/80" }
+                }
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  backgroundColor: "#ddd",
+                }}
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{ fontSize: 15, fontWeight: "700" }}
+                  numberOfLines={1}
+                >
+                  {post.username || "Anonymous"}
+                </Text>
+                <Text style={{ fontSize: 12, color: "#666" }}>
+                  @{String(post.uid ?? "user").slice(0, 6)}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Right spacer to keep header centered feel (same trick as connections) */}
+            <View style={{ width: 40 }} />
+          </View>
 
           {/* Post image */}
           <Image

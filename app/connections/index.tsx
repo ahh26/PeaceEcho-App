@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import React, { useEffect, useMemo, useState } from "react";
@@ -11,7 +12,7 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { db } from "../../firebase"; // ✅ note path (app/user -> root)
+import { db } from "../../firebase";
 
 type ConnectionItem = {
   id: string;
@@ -127,9 +128,9 @@ export default function UserConnectionsScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={styles.headerBtn}
+          style={{ paddingRight: 12 }}
         >
-          <Text style={styles.headerIcon}>‹</Text>
+          <Ionicons name="chevron-back" size={28} color="#111" />
         </TouchableOpacity>
 
         <Text style={styles.headerTitle} numberOfLines={1}>
