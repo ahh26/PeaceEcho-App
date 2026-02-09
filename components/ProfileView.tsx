@@ -66,6 +66,8 @@ export default function ProfileView({
   const username = profile.username ?? "Unnamed";
   const email = profile.email ?? "";
   const bio = profile.bio ?? "";
+
+  console.log("PROFILE REGION IN VIEW:", profile.region);
   const regionText = [
     profile.region?.city,
     profile.region?.region,

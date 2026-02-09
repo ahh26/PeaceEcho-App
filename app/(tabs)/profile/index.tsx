@@ -1,16 +1,28 @@
 import ProfileView from "@/components/ProfileView";
 import { getUserProfile } from "@/lib/userProfile";
+import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth } from "../../../firebase";
 
+type Region = {
+  countryCode?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  lat?: number;
+  lng?: number;
+  source?: "manual" | "gps";
+};
+
 type UserProfile = {
   username?: string;
   email?: string;
   bio?: string;
   photoURL?: string;
+  region?: Region;
   followerCount?: number;
   followingCount?: number;
   postCount?: number;
@@ -28,6 +40,12 @@ export default function ProfileScreen() {
 
   const [posts, setPosts] = useState<GridItem[]>([]);
   const [saved, setSaved] = useState<GridItem[]>([]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // call loadProfile again
+    }, [user?.uid])
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -108,6 +126,7 @@ export default function ProfileScreen() {
           email: profile?.email ?? user.email ?? "",
           bio: profile?.bio ?? "",
           photoURL: profile?.photoURL,
+          region: profile?.region,
         }}
         photoSource={photoSource}
         followers={followers}

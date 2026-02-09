@@ -29,7 +29,6 @@ async function uriToBlob(uri: string): Promise<Blob> {
   return await response.blob();
 }
 
-// ---------- IG-style Photos Strip ----------
 function PhotosStrip({
   images,
   disabled,
@@ -144,6 +143,9 @@ export default function EditPostScreen() {
   const [posting, setPosting] = useState(false);
   const busy = posting;
 
+  const [locationEnabled, setLocationEnabled] = useState(false);
+  const [postLocation, setPostLocation] = useState<any>(null);
+
   useEffect(() => {
     const load = async () => {
       const user = auth.currentUser;
@@ -241,6 +243,17 @@ export default function EditPostScreen() {
         uploadedUrls.push(downloadUrl);
       }
 
+      const postLocation = userProfile?.region
+        ? {
+            countryCode: userProfile.region.countryCode ?? "",
+            country: userProfile.region.country ?? "",
+            stateCode: userProfile.region.stateCode ?? "",
+            stateName: userProfile.region.stateName ?? "",
+            city: userProfile.region.city ?? "",
+            source: "profile",
+          }
+        : null;
+
       await addDoc(collection(db, "posts"), {
         uid: user.uid,
         caption: caption.trim(),
@@ -248,6 +261,7 @@ export default function EditPostScreen() {
         createdAt: serverTimestamp(),
         username: userProfile?.username || "Anonymous",
         userPhotoURL: userProfile?.photoURL || null,
+        postLocation: locationEnabled ? postLocation : null,
       });
 
       router.replace("/(tabs)/discover");
@@ -335,6 +349,45 @@ export default function EditPostScreen() {
             onChangeText={setCaption}
             editable={!busy}
           />
+        </View>
+
+        {/*Locaation selector */}
+        <View style={styles.card}>
+          <View
+            style={{ flexDirection: "row", justifyContent: "space-between" }}
+          >
+            <Text style={styles.cardTitle}>Location</Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                if (locationEnabled) {
+                  setLocationEnabled(false);
+                  setPostLocation(null);
+                } else {
+                  setLocationEnabled(true);
+                  setPostLocation(userProfile?.region ?? null); // default = profile
+                }
+              }}
+            >
+              <Text style={{ fontWeight: "800", color: "#2563EB" }}>
+                {locationEnabled ? "Remove" : "Add"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {locationEnabled && (
+            <Text style={{ marginTop: 8, fontSize: 13, color: "#374151" }}>
+              {postLocation
+                ? [
+                    postLocation.city,
+                    postLocation.stateName,
+                    postLocation.country,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")
+                : "No location selected"}
+            </Text>
+          )}
         </View>
 
         {/* Loading hint */}

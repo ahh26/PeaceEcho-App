@@ -1,13 +1,15 @@
+// ProfileEdit.tsx
 import { State } from "country-state-city";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -26,9 +28,10 @@ import {
 } from "../../../lib/userProfile";
 
 type Region = {
-  countryCode?: string;
-  country?: string;
-  region?: string; // state/province text
+  countryCode?: string; // "CA"
+  country?: string; // "Canada"
+  stateCode?: string; // "ON"
+  stateName?: string; // "Ontario"
   city?: string;
   lat?: number;
   lng?: number;
@@ -40,7 +43,7 @@ type UserProfile = {
   email?: string;
   bio?: string;
   photoURL?: string;
-  region?: Region;
+  region?: Region & { region?: string }; // backward compat: old field "region" (string)
 };
 
 export default function ProfileEdit() {
@@ -57,14 +60,58 @@ export default function ProfileEdit() {
   const [region, setRegion] = useState<Region>({
     countryCode: "",
     country: "",
-    region: "",
+    stateCode: "",
+    stateName: "",
     city: "",
     source: "manual",
   });
 
   const [locating, setLocating] = useState(false);
   const [countryVisible, setCountryVisible] = useState(false);
+  const [stateVisible, setStateVisible] = useState(false);
+  const [stateSearch, setStateSearch] = useState("");
 
+  // -------- helpers --------
+  function cleanObject<T extends Record<string, any>>(obj: T) {
+    // keep empty strings if you want to intentionally clear fields;
+    // only remove undefined
+    return Object.fromEntries(
+      Object.entries(obj).filter(([_, v]) => v !== undefined)
+    ) as Partial<T>;
+  }
+
+  const clearLocation = () => {
+    setRegion({
+      countryCode: "",
+      country: "",
+      stateCode: "",
+      stateName: "",
+      city: "",
+      lat: undefined,
+      lng: undefined,
+      source: "manual",
+    });
+    setStateSearch("");
+  };
+
+  const states = useMemo(() => {
+    if (!region.countryCode) return [];
+    try {
+      return State.getStatesOfCountry(region.countryCode) || [];
+    } catch {
+      return [];
+    }
+  }, [region.countryCode]);
+
+  const filteredStates = useMemo(() => {
+    const q = stateSearch.trim().toLowerCase();
+    if (!q) return states;
+    return states.filter((s) => s.name.toLowerCase().includes(q));
+  }, [states, stateSearch]);
+
+  const hasStates = states.length > 0;
+
+  // -------- load profile --------
   useEffect(() => {
     const loadProfile = async () => {
       if (!user) {
@@ -78,6 +125,24 @@ export default function ProfileEdit() {
           setProfile(typed);
           setUsername(typed.username ?? "");
           setBio(typed.bio ?? "");
+
+          // Backward compat:
+          // old: region.region (string)
+          // new: region.stateName / region.stateCode
+          const oldRegionText = (typed.region as any)?.region as
+            | string
+            | undefined;
+
+          setRegion({
+            countryCode: typed.region?.countryCode ?? "",
+            country: typed.region?.country ?? "",
+            stateCode: typed.region?.stateCode ?? "",
+            stateName: typed.region?.stateName ?? oldRegionText ?? "",
+            city: typed.region?.city ?? "",
+            lat: typed.region?.lat,
+            lng: typed.region?.lng,
+            source: typed.region?.source ?? "manual",
+          });
         }
       } catch (err) {
         console.log("Failed to load profile: ", err);
@@ -86,36 +151,54 @@ export default function ProfileEdit() {
       }
     };
     loadProfile();
-  }, [user]);
+  }, [user?.uid]);
 
-  //remove undefined keys
-  function cleanObject<T extends Record<string, any>>(obj: T) {
-    return Object.fromEntries(
-      Object.entries(obj).filter(([_, v]) => v !== undefined)
-    ) as Partial<T>;
-  }
-
+  // -------- save --------
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
+
     try {
-      const finaPhotoURL = profile?.photoURL;
+      const finalPhotoURL = profile?.photoURL ?? "";
+      const usernameChanged = username.trim() !== (profile?.username ?? "");
+      const bioChanged = bio !== (profile?.bio ?? "");
+
+      // If user cleared everything, store an empty object (works with your ProfileView logic)
+      // You can switch to deleting the field later if you want.
       const cleanRegion = cleanObject(region);
+      const isEmptyRegion =
+        !cleanRegion.countryCode &&
+        !cleanRegion.country &&
+        !cleanRegion.stateCode &&
+        !cleanRegion.stateName &&
+        !cleanRegion.city;
+
+      // IMPORTANT: keep backward compat by also writing "region" text
+      // (optional, but helpful if any old screens still read profile.region.region)
+      const regionPayload: any = isEmptyRegion
+        ? {}
+        : {
+            ...cleanRegion,
+            region: cleanRegion.stateName || "", // legacy alias
+          };
+
       await updateProfileAndBackfillPosts({
         uid: user.uid,
-        newUsername: username.trim(),
-        newPhotoURL: finaPhotoURL,
-        newBio: bio,
-        newRegion: cleanRegion,
+        newUsername: usernameChanged ? username.trim() : undefined,
+        newPhotoURL: undefined, // Save button shouldn't backfill photo unless it changed via upload
+        newBio: bioChanged ? bio : undefined,
+        newRegion: regionPayload,
       });
+
       setProfile((prev) => ({
         ...(prev || {}),
         username: username.trim(),
-        bio: bio,
-        photoURL: finaPhotoURL,
-        region: cleanRegion as Region,
+        bio,
+        photoURL: finalPhotoURL,
+        region: isEmptyRegion ? undefined : (regionPayload as Region),
         email: (prev && prev.email) || user.email || "",
       }));
+
       router.push("/(tabs)/profile");
     } catch (err) {
       console.log("SAVE ERROR:", err);
@@ -125,6 +208,7 @@ export default function ProfileEdit() {
     }
   };
 
+  // -------- upload photo --------
   const handlePickImage = async () => {
     if (!user) return;
 
@@ -136,7 +220,7 @@ export default function ProfileEdit() {
 
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: "images",
+        mediaTypes: "images" as any,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.7,
@@ -150,12 +234,28 @@ export default function ProfileEdit() {
       setUploading(true);
       const downloadUrl = await uploadProfileImage(user.uid, asset.uri);
 
+      // region payload (same as save)
+      const cleanRegion = cleanObject(region);
+      const isEmptyRegion =
+        !cleanRegion.countryCode &&
+        !cleanRegion.country &&
+        !cleanRegion.stateCode &&
+        !cleanRegion.stateName &&
+        !cleanRegion.city;
+
+      const regionPayload: any = isEmptyRegion
+        ? {}
+        : {
+            ...cleanRegion,
+            region: cleanRegion.stateName || "",
+          };
+
       await updateProfileAndBackfillPosts({
         uid: user.uid,
-        newUsername: username.trim(),
-        newPhotoURL: downloadUrl,
+        newUsername: username.trim(), // ok to backfill username on photo upload
+        newPhotoURL: downloadUrl, // ✅ backfill posts photo here
         newBio: bio,
-        newRegion: cleanObject(region),
+        newRegion: regionPayload, // user doc update
       });
 
       setProfile((prev) => ({
@@ -163,6 +263,7 @@ export default function ProfileEdit() {
         photoURL: downloadUrl,
         username: (prev && prev.username) || username,
         bio: (prev && prev.bio) || bio,
+        region: isEmptyRegion ? undefined : (regionPayload as Region),
         email: (prev && prev.email) || user.email || "",
       }));
     } catch (err) {
@@ -172,6 +273,7 @@ export default function ProfileEdit() {
     }
   };
 
+  // -------- GPS --------
   const handleUseCurrentLocation = async () => {
     try {
       setLocating(true);
@@ -201,22 +303,24 @@ export default function ProfileEdit() {
       const iso = place?.isoCountryCode ?? "";
       const countryName = place?.country ?? "";
 
-      // Try to match the dataset state by name (best-effort)
-      const stateName = place?.region ?? ""; // province/state name
+      const stateNameFromGPS = place?.region ?? "";
       const stateList = iso ? State.getStatesOfCountry(iso) : [];
       const matchedState = stateList.find(
-        (s) => s.name.toLowerCase() === stateName.toLowerCase()
+        (s) => s.name.toLowerCase() === stateNameFromGPS.toLowerCase()
       );
 
       setRegion({
         countryCode: iso,
         country: countryName,
-        region: matchedState?.name ?? stateName,
+        stateCode: matchedState?.isoCode ?? "",
+        stateName: matchedState?.name ?? stateNameFromGPS,
         city: place?.city ?? place?.subregion ?? "",
         lat,
         lng,
         source: "gps",
       });
+
+      setStateSearch("");
     } catch (e) {
       console.log("location error:", e);
       Alert.alert("Couldn’t fetch location", "Use manual selection instead.");
@@ -225,6 +329,7 @@ export default function ProfileEdit() {
     }
   };
 
+  // -------- UI states --------
   if (!user) {
     return (
       <SafeAreaView style={styles.center}>
@@ -242,6 +347,10 @@ export default function ProfileEdit() {
   }
 
   const photoURL = profile?.photoURL;
+
+  const previewText = [region.city, region.stateName, region.country]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <SafeAreaView style={styles.container}>
@@ -302,20 +411,29 @@ export default function ProfileEdit() {
             multiline
           />
 
-          {/* */}
+          {/* Location */}
           <Text style={styles.label}>Location</Text>
 
           <View style={styles.regionCard}>
-            {/* Use current location */}
-            <TouchableOpacity
-              style={[styles.locationBtn, locating && { opacity: 0.6 }]}
-              onPress={handleUseCurrentLocation}
-              disabled={locating}
-            >
-              <Text style={styles.locationBtnText}>
-                {locating ? "Finding location…" : "Use current location"}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.locationRow}>
+              <TouchableOpacity
+                style={[styles.locationBtn, locating && { opacity: 0.6 }]}
+                onPress={handleUseCurrentLocation}
+                disabled={locating}
+              >
+                <Text style={styles.locationBtnText}>
+                  {locating ? "Finding location…" : "Use current location"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.clearBtn, locating && { opacity: 0.6 }]}
+                onPress={clearLocation}
+                disabled={locating}
+              >
+                <Text style={styles.clearBtnText}>Clear</Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Country */}
             <Text style={styles.smallLabel}>Country</Text>
@@ -339,48 +457,78 @@ export default function ProfileEdit() {
               onSelect={(c) => {
                 const name =
                   typeof c.name === "string" ? c.name : c.name.common;
+
                 setRegion((prev) => ({
                   ...prev,
                   countryCode: c.cca2,
                   country: name,
+
+                  // reset dependent fields
+                  stateCode: "",
+                  stateName: "",
+                  city: "",
                   source: "manual",
                   lat: undefined,
                   lng: undefined,
                 }));
+
+                setStateSearch("");
                 setCountryVisible(false);
               }}
+              containerButtonStyle={{ display: "none" }}
             />
 
             {/* State / Province */}
             <Text style={styles.smallLabel}>State / Province</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. Ontario / California"
-              value={region.region}
-              onChangeText={(text) =>
-                setRegion((prev) => ({
-                  ...prev,
-                  region: text,
-                  source: "manual",
-                }))
-              }
-            />
+
+            <TouchableOpacity
+              style={[
+                styles.countryInput,
+                !region.countryCode && { opacity: 0.5 },
+              ]}
+              onPress={() => {
+                if (!region.countryCode) {
+                  Alert.alert("Choose a country first");
+                  return;
+                }
+                if (!hasStates) {
+                  Alert.alert(
+                    "No states found",
+                    "This country may not have states/provinces in the dataset. You can leave it blank."
+                  );
+                  return;
+                }
+                setStateVisible(true);
+              }}
+              disabled={!region.countryCode}
+            >
+              <Text style={styles.countryText}>
+                {region.stateName ||
+                  (region.countryCode
+                    ? "Select state/province"
+                    : "Select country first")}
+              </Text>
+            </TouchableOpacity>
 
             {/* City */}
             <Text style={styles.smallLabel}>City</Text>
             <TextInput
               style={styles.input}
               placeholder="City"
-              value={region.city}
+              value={region.city ?? ""}
               onChangeText={(text) =>
-                setRegion((prev) => ({ ...prev, city: text, source: "manual" }))
+                setRegion((prev) => ({
+                  ...prev,
+                  city: text,
+                  source: "manual",
+                  lat: undefined,
+                  lng: undefined,
+                }))
               }
             />
 
             <Text style={styles.regionPreview}>
-              {(region.city ? `${region.city}, ` : "") +
-                (region.region ? `${region.region}, ` : "") +
-                (region.country || "")}
+              {previewText || "No location set"}
               {region.source === "gps" ? " · GPS" : ""}
             </Text>
           </View>
@@ -397,25 +545,87 @@ export default function ProfileEdit() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* State picker modal */}
+      <Modal visible={stateVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select state / province</Text>
+              <TouchableOpacity onPress={() => setStateVisible(false)}>
+                <Text style={styles.modalClose}>Close</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.modalSearch}
+              placeholder="Search…"
+              value={stateSearch}
+              onChangeText={setStateSearch}
+              autoCapitalize="none"
+            />
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {filteredStates.map((s) => {
+                const selected = region.stateCode === s.isoCode;
+                return (
+                  <TouchableOpacity
+                    key={`${s.countryCode}-${s.isoCode}`}
+                    style={[
+                      styles.stateItem,
+                      selected && styles.stateItemSelected,
+                    ]}
+                    onPress={() => {
+                      setRegion((prev) => ({
+                        ...prev,
+                        stateCode: s.isoCode,
+                        stateName: s.name,
+                        source: "manual",
+                        lat: undefined,
+                        lng: undefined,
+                      }));
+                      setStateVisible(false);
+                    }}
+                  >
+                    <Text style={styles.stateItemText}>{s.name}</Text>
+                    <Text style={styles.stateItemSub}>{s.isoCode}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+              {filteredStates.length === 0 && (
+                <Text style={styles.emptyText}>No matches.</Text>
+              )}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.modalClearState}
+              onPress={() => {
+                setRegion((prev) => ({
+                  ...prev,
+                  stateCode: "",
+                  stateName: "",
+                  source: "manual",
+                }));
+                setStateVisible(false);
+              }}
+            >
+              <Text style={styles.modalClearStateText}>
+                Clear state/province
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  container: {
-    flex: 1,
-    padding: 24,
-    backgroundColor: "#fff",
-  },
-  avatarContainer: {
-    alignItems: "center",
-    marginBottom: 24,
-  },
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  container: { flex: 1, padding: 24, backgroundColor: "#fff" },
+  scrollContent: { paddingBottom: 40 },
+
+  avatarContainer: { alignItems: "center", marginBottom: 24 },
   avatar: {
     width: 120,
     height: 120,
@@ -430,21 +640,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#888",
   },
-  changePhotoText: {
-    fontSize: 14,
-    fontWeight: "500",
+  changePhotoText: { fontSize: 14, fontWeight: "500" },
+
+  label: { fontSize: 14, fontWeight: "600", marginTop: 8, marginBottom: 4 },
+  smallLabel: {
+    marginTop: 10,
+    marginBottom: 6,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#374151",
   },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  readOnlyField: {
-    paddingVertical: 10,
-    marginBottom: 8,
-    color: "#555",
-  },
+  readOnlyField: { paddingVertical: 10, marginBottom: 8, color: "#555" },
+
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -454,44 +661,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 8,
   },
-  bioInput: {
-    height: 80,
-    textAlignVertical: "top",
-  },
-  saveButton: {
-    marginTop: 16,
-    backgroundColor: "#111827",
-    paddingVertical: 12,
-    borderRadius: 999,
-    alignItems: "center",
-  },
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
-  saveButtonText: {
-    color: "white",
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  countryInput: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    backgroundColor: "#FFF",
-  },
-  countryText: {
-    fontSize: 14,
-    color: "#111827",
-  },
-  smallLabel: {
-    marginTop: 10,
-    marginBottom: 6,
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#374151",
-  },
+  bioInput: { height: 80, textAlignVertical: "top" },
+
   regionCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
@@ -500,25 +671,113 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     marginTop: 8,
   },
+
+  locationRow: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  locationBtn: {
+    backgroundColor: "#111827",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+  },
+  locationBtnText: { color: "white", fontWeight: "800" },
+
+  clearBtn: {
+    backgroundColor: "#6B7280",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+  },
+  clearBtnText: { color: "white", fontWeight: "800" },
+
+  countryInput: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    backgroundColor: "#FFF",
+    marginBottom: 8,
+  },
+  countryText: { fontSize: 14, color: "#111827" },
+
   regionPreview: {
     marginTop: 10,
     fontSize: 12,
     color: "#6B7280",
     fontWeight: "600",
   },
-  locationBtn: {
-    alignSelf: "flex-start",
+
+  saveButton: {
+    marginTop: 16,
     backgroundColor: "#111827",
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderRadius: 999,
-    marginBottom: 12,
+    alignItems: "center",
   },
-  locationBtnText: {
-    color: "white",
-    fontWeight: "800",
+  saveButtonDisabled: { opacity: 0.6 },
+  saveButtonText: { color: "white", fontWeight: "600", fontSize: 16 },
+
+  // modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "flex-end",
   },
-  scrollContent: {
-    paddingBottom: 40,
+  modalCard: {
+    backgroundColor: "#fff",
+    padding: 16,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    maxHeight: "80%",
   },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  modalTitle: { fontSize: 16, fontWeight: "800" },
+  modalClose: { fontSize: 14, fontWeight: "700", color: "#111827" },
+
+  modalSearch: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  stateItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  stateItemSelected: {
+    borderColor: "#111827",
+  },
+  stateItemText: { fontSize: 14, fontWeight: "700", color: "#111827" },
+  stateItemSub: { fontSize: 12, color: "#6B7280", fontWeight: "700" },
+  emptyText: { paddingVertical: 18, textAlign: "center", color: "#6B7280" },
+
+  modalClearState: {
+    marginTop: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    alignItems: "center",
+  },
+  modalClearStateText: { fontWeight: "800", color: "#111827" },
 });
