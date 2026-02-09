@@ -76,6 +76,16 @@ export default function PostDetail() {
     );
   }
 
+  const locationText = post?.postLocation
+    ? [
+        post.postLocation.city,
+        post.postLocation.stateName,
+        post.postLocation.country,
+      ]
+        .filter(Boolean)
+        .join(", ")
+    : "";
+
   const goToUser = () => {
     if (!post?.uid) return;
     router.push({
@@ -113,7 +123,7 @@ export default function PostDetail() {
             paddingBottom: 110 + insets.bottom, // leave room for sticky bar
           }}
         >
-          {/* Top header (connections-style) */}
+          {/* Top header */}
           <View
             style={{
               flexDirection: "row",
@@ -161,9 +171,6 @@ export default function PostDetail() {
                 >
                   {post.username || "Anonymous"}
                 </Text>
-                <Text style={{ fontSize: 12, color: "#666" }}>
-                  @{String(post.uid ?? "user").slice(0, 6)}
-                </Text>
               </View>
             </TouchableOpacity>
 
@@ -187,6 +194,25 @@ export default function PostDetail() {
             <Text style={{ fontSize: 16, marginTop: 12, lineHeight: 20 }}>
               {post.caption}
             </Text>
+          )}
+
+          {/* Location */}
+          {!!locationText && (
+            <View
+              style={{
+                marginTop: 8,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <Ionicons name="location-outline" size={14} color="#6B7280" />
+              <Text
+                style={{ fontSize: 13, color: "#6B7280", fontWeight: "600" }}
+              >
+                {locationText}
+              </Text>
+            </View>
           )}
 
           {/* Divider */}
@@ -240,7 +266,7 @@ export default function PostDetail() {
           )}
         </ScrollView>
 
-        {/* ✅ Sticky Bottom Bar */}
+        {/* Sticky Bottom Bar */}
         <View
           style={{
             position: "absolute",

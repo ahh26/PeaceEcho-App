@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
@@ -71,6 +72,16 @@ export default function DiscoverScreen() {
         {/* Post grid */}
         <View style={styles.grid}>
           {filteredPosts.map((post, index) => {
+            const locationText = post?.postLocation
+              ? [
+                  post.postLocation.city,
+                  post.postLocation.stateName,
+                  post.postLocation.country,
+                ]
+                  .filter(Boolean)
+                  .join(", ")
+              : "";
+
             const isStaggered = index >= 2 && index % 2 === 1;
             return (
               <TouchableOpacity
@@ -112,10 +123,19 @@ export default function DiscoverScreen() {
                   {post.caption || ""}
                 </Text>
 
-                {/* Username */}
-                <Text style={styles.user}>
-                  @{post.uid?.slice(0, 6) || "user"}
-                </Text>
+                {/* Location */}
+                {!!locationText && (
+                  <View style={styles.locationRow}>
+                    <Ionicons
+                      name="location-outline"
+                      size={13}
+                      color="#6B7280"
+                    />
+                    <Text style={styles.locationText} numberOfLines={3}>
+                      {locationText}
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
             );
           })}
@@ -204,5 +224,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#333",
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+  },
+  locationText: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontWeight: "600",
+    flex: 1,
   },
 });
