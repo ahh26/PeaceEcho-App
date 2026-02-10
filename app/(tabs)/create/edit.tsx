@@ -1,8 +1,13 @@
 import { State } from "country-state-city";
-import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  increment,
+  serverTimestamp,
+  writeBatch,
+} from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -23,13 +28,18 @@ import { auth, db, storage } from "../../../firebase";
 import { getUserProfile } from "../../../lib/userProfile";
 
 async function uriToBlob(uri: string): Promise<Blob> {
-  const manipulated = await ImageManipulator.manipulateAsync(uri, [], {
-    compress: 0.9,
-    format: ImageManipulator.SaveFormat.JPEG,
+  return await new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.onload = function () {
+      resolve(xhr.response);
+    };
+    xhr.onerror = function () {
+      reject(new TypeError("Network request failed"));
+    };
+    xhr.responseType = "blob";
+    xhr.open("GET", uri, true);
+    xhr.send(null);
   });
-
-  const response = await fetch(manipulated.uri);
-  return await response.blob();
 }
 
 function PhotosStrip({
@@ -271,16 +281,22 @@ export default function EditPostScreen() {
           postLocation?.city
         );
 
-      await addDoc(collection(db, "posts"), {
+      const batch = writeBatch(db);
+      const postRef = doc(collection(db, "posts"));
+      batch.set(postRef, {
         uid: user.uid,
         caption: caption.trim(),
         imageUrls: uploadedUrls,
         createdAt: serverTimestamp(),
         username: userProfile?.username || "Anonymous",
         userPhotoURL: userProfile?.photoURL || null,
-
         ...(hasPostLocation ? { postLocation } : {}),
       });
+
+      const userRef = doc(db, "users", user.uid);
+      batch.update(userRef, { postCount: increment(1) });
+
+      await batch.commit();
 
       router.replace("/(tabs)/discover");
     } catch (error: any) {
@@ -298,6 +314,9 @@ export default function EditPostScreen() {
 
   const canPost = !busy && images.length > 0;
 
+  {
+    /*-----UI------*/
+  }
   return (
     <SafeAreaView style={styles.screen}>
       {/* Header */}

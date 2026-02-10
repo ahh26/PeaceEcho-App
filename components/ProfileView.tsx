@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export type ProfileViewProfile = {
@@ -166,7 +166,7 @@ export default function ProfileView({
       <FlatList
         data={gridData}
         keyExtractor={(item) => item.id}
-        numColumns={3}
+        numColumns={2}
         columnWrapperStyle={{ gap: 8 }}
         contentContainerStyle={{ gap: 8, paddingBottom: 24 }}
         renderItem={({ item }) => (

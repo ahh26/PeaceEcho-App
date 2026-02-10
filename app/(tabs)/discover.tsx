@@ -72,15 +72,17 @@ export default function DiscoverScreen() {
         {/* Post grid */}
         <View style={styles.grid}>
           {filteredPosts.map((post, index) => {
-            const locationText = post?.postLocation
-              ? [
-                  post.postLocation.city,
-                  post.postLocation.stateName,
-                  post.postLocation.country,
-                ]
-                  .filter(Boolean)
-                  .join(", ")
-              : "";
+            // const locationText = post?.postLocation
+            //   ? [
+            //       post.postLocation.city,
+            //       post.postLocation.stateName,
+            //       post.postLocation.country,
+            //     ]
+            //       .filter(Boolean)
+            //       .join(", ")
+            //   : "";
+
+            const locationText = post?.postLocation?.country || "";
 
             const isStaggered = index >= 2 && index % 2 === 1;
             return (
@@ -91,51 +93,63 @@ export default function DiscoverScreen() {
                   router.push({ pathname: "/post", params: { id: post.id } })
                 }
               >
-                {/* UserHeader */}
-                <View style={styles.userHeader}>
-                  <Image
-                    source={
-                      post.userPhotoURL
-                        ? { uri: post.userPhotoURL }
-                        : { uri: "https://via.placeholder.com/50" }
-                    }
-                    style={styles.avatar}
-                  />
-                  <Text style={styles.usernameText}>
-                    {post.username || "Anonymous"}
-                  </Text>
+                {/* Image */}
+                <View style={styles.imageWrap}>
+                  {post.imageUrls?.[0] ? (
+                    <Image
+                      source={{ uri: post.imageUrls[0] }}
+                      style={styles.image}
+                    />
+                  ) : (
+                    <View style={[styles.image, styles.placeholder]}>
+                      <Text>No Image</Text>
+                    </View>
+                  )}
+
+                  {!!locationText && (
+                    <View style={styles.locationPill}>
+                      <Ionicons
+                        name="location-outline"
+                        size={12}
+                        color="#fff"
+                      />
+                      <Text style={styles.locationPillText} numberOfLines={1}>
+                        {locationText}
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
-                {/* Image */}
-                {post.imageUrls?.[0] ? (
-                  <Image
-                    source={{ uri: post.imageUrls[0] }}
-                    style={styles.image}
-                  />
-                ) : (
-                  <View style={[styles.image, styles.placeholder]}>
-                    <Text>No Image</Text>
-                  </View>
-                )}
-
                 {/* Caption Preview */}
-                <Text style={styles.caption} numberOfLines={2}>
+                <Text style={styles.caption} numberOfLines={3}>
                   {post.caption || ""}
                 </Text>
 
-                {/* Location */}
-                {!!locationText && (
-                  <View style={styles.locationRow}>
-                    <Ionicons
-                      name="location-outline"
-                      size={13}
-                      color="#6B7280"
+                {/* User + Likes Row */}
+                <View style={styles.infoRow}>
+                  <View style={styles.userMini}>
+                    <Image
+                      source={
+                        post.userPhotoURL
+                          ? { uri: post.userPhotoURL }
+                          : { uri: "https://via.placeholder.com/30" }
+                      }
+                      style={styles.avatarMini}
                     />
-                    <Text style={styles.locationText} numberOfLines={3}>
-                      {locationText}
+                    <Text style={styles.usernameMini} numberOfLines={1}>
+                      {post.username || "Anonymous"}
                     </Text>
                   </View>
-                )}
+
+                  <View style={styles.likesRow}>
+                    <Ionicons
+                      name={post.isLiked ? "heart" : "heart-outline"}
+                      size={16}
+                      color="#6B7280"
+                    />
+                    <Text style={styles.likesText}>{post.likeCount ?? 0}</Text>
+                  </View>
+                </View>
               </TouchableOpacity>
             );
           })}
@@ -196,6 +210,7 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 14,
     color: "#444",
+    fontWeight: "700",
   },
   user: {
     paddingHorizontal: 10,
@@ -208,34 +223,82 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  userHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 10,
-    gap: 8,
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  avatarMini: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     backgroundColor: "#ddd",
   },
-  usernameText: {
-    fontSize: 14,
+
+  usernameMini: {
+    fontSize: 12,
     fontWeight: "600",
-    color: "#333",
+    color: "#6B7280",
+    maxWidth: 90,
+  },
+
+  userMini: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flex: 1,
+  },
+
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+    paddingTop: 4,
+    paddingBottom: 6,
+  },
+
+  likesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+
+  likesText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6B7280",
   },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     paddingHorizontal: 10,
+    paddingTop: 4,
     paddingBottom: 10,
   },
+
   locationText: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#6B7280",
-    fontWeight: "600",
+    fontWeight: "500",
     flex: 1,
+  },
+  imageWrap: { position: "relative" },
+
+  locationPill: {
+    position: "absolute",
+    left: 8,
+    bottom: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    maxWidth: "75%", // prevents covering the card
+  },
+
+  locationPillText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "600",
+    flexShrink: 1,
   },
 });

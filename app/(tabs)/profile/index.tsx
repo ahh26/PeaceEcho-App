@@ -2,10 +2,17 @@ import ProfileView from "@/components/ProfileView";
 import { getUserProfile } from "@/lib/userProfile";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { auth } from "../../../firebase";
+import { auth, db } from "../../../firebase";
 
 type Region = {
   countryCode?: string;
@@ -43,7 +50,22 @@ export default function ProfileScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      // call loadProfile again
+      let cancelled = false;
+
+      const run = async () => {
+        if (!user) return;
+        try {
+          const data = await getUserProfile(user.uid);
+          if (!cancelled) setProfile((data ?? null) as UserProfile | null);
+        } catch (e) {
+          console.log("Focus reload profile failed:", e);
+        }
+      };
+
+      run();
+      return () => {
+        cancelled = true;
+      };
     }, [user?.uid])
   );
 
@@ -71,6 +93,28 @@ export default function ProfileScreen() {
     };
   }, [user?.uid]);
 
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const q = query(
+      collection(db, "posts"),
+      where("uid", "==", user.uid),
+      orderBy("createdAt", "desc")
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      const data: GridItem[] = [];
+      snap.forEach((d) => {
+        const p: any = d.data();
+        data.push({
+          id: d.id,
+          label: p.caption?.trim() ? p.caption : "Post",
+        });
+      });
+      setPosts(data);
+    });
+    return () => unsub();
+  }, [user?.uid]);
   const photoSource = useMemo(() => {
     const url = profile?.photoURL;
     return url

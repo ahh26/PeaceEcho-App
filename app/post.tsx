@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, runTransaction } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   Text,
@@ -15,7 +16,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { db } from "../firebase";
+import { auth, db } from "../firebase";
 
 type CommentUI = {
   id: string;
@@ -35,6 +36,19 @@ export default function PostDetail() {
   const [saved, setSaved] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState<CommentUI[]>([]);
+
+  useEffect(() => {
+    try {
+      console.log("AUTH app name:", auth.app.name);
+      console.log("AUTH app options projectId:", auth.app.options.projectId);
+
+      // Firestore internal fields (not official API, but useful for debugging)
+      console.log("DB projectId:", (db as any)?._databaseId?.projectId);
+      console.log("DB firestore app name:", (db as any)?._app?.name);
+    } catch (e) {
+      console.log("debug logs failed:", e);
+    }
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -85,6 +99,59 @@ export default function PostDetail() {
         .filter(Boolean)
         .join(", ")
     : "";
+
+  //delete option if it's account owner's post
+  const isOwner = auth.currentUser?.uid && post?.uid === auth.currentUser.uid;
+
+  const onDeletePost = async () => {
+    if (!id) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    Alert.alert(
+      "Delete post?",
+      "This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await runTransaction(db, async (tx) => {
+                const postRef = doc(db, "posts", String(id));
+                const userRef = doc(db, "users", user.uid);
+
+                const postSnap = await tx.get(postRef);
+                if (!postSnap.exists()) {
+                  throw new Error("Post does not exist");
+                }
+
+                const postData = postSnap.data();
+                if (postData.uid !== user.uid) {
+                  throw new Error("Not authorized");
+                }
+
+                const userSnap = await tx.get(userRef);
+                const currentCount = userSnap.data()?.postCount ?? 0;
+
+                tx.delete(postRef);
+                tx.update(userRef, {
+                  postCount: Math.max(currentCount - 1, 0),
+                });
+              });
+
+              router.back();
+            } catch (e) {
+              console.log("Delete failed:", e);
+              Alert.alert("Delete failed", "Please try again.");
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   const goToUser = () => {
     if (!post?.uid) return;
@@ -174,8 +241,16 @@ export default function PostDetail() {
               </View>
             </TouchableOpacity>
 
-            {/* Right spacer to keep header centered feel (same trick as connections) */}
-            <View style={{ width: 40 }} />
+            {/* Delete button */}
+            <View style={{ width: 40, alignItems: "flex-end" }}>
+              {isOwner ? (
+                <TouchableOpacity onPress={onDeletePost} style={{ padding: 6 }}>
+                  <Ionicons name="trash-outline" size={22} color="#E53935" />
+                </TouchableOpacity>
+              ) : (
+                <View style={{ width: 22 }} />
+              )}
+            </View>
           </View>
 
           {/* Post image */}
