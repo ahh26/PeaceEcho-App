@@ -1,13 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import {
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export type ProfileViewProfile = {
   username?: string;
@@ -21,6 +14,13 @@ export type ProfileViewProfile = {
     city?: string;
     source?: "manual" | "gps";
   };
+};
+
+export type PostPreview = {
+  id: string;
+  imageUrl?: string; // first image
+  caption?: string;
+  location?: string;
 };
 
 type GridItem = { id: string; label: string };
@@ -37,7 +37,8 @@ type Props = {
   activeTab: "posts" | "saved";
   setActiveTab: (t: "posts" | "saved") => void;
 
-  gridData: GridItem[];
+  posts: PostPreview[];
+  saved: PostPreview[];
 
   showEdit?: boolean;
   showSaved?: boolean;
@@ -45,6 +46,8 @@ type Props = {
   onPressEdit: () => void;
   onPressFollowers: () => void;
   onPressFollowing: () => void;
+
+  onPressPost?: (postId: string) => void;
 };
 
 export default function ProfileView({
@@ -56,18 +59,19 @@ export default function ProfileView({
   savedCount,
   activeTab,
   setActiveTab,
-  gridData,
+  posts,
+  saved,
   showEdit = true,
   showSaved = true,
   onPressEdit,
   onPressFollowers,
   onPressFollowing,
+  onPressPost,
 }: Props) {
   const username = profile.username ?? "Unnamed";
   const email = profile.email ?? "";
   const bio = profile.bio ?? "";
 
-  console.log("PROFILE REGION IN VIEW:", profile.region);
   const regionText = [
     profile.region?.city,
     profile.region?.region,
@@ -76,6 +80,7 @@ export default function ProfileView({
     .filter(Boolean)
     .join(", ");
 
+  const gridData = activeTab === "posts" ? posts : saved;
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -84,6 +89,7 @@ export default function ProfileView({
         <View style={{ flex: 1 }}>
           <Text style={styles.username}>{username}</Text>
           {/* {!!email && <Text style={styles.subtext}>{email}</Text>} */}
+
           {!!regionText && (
             <View style={styles.regionRow}>
               <Ionicons name="location-outline" size={14} color="#6B7280" />
@@ -161,27 +167,53 @@ export default function ProfileView({
           </TouchableOpacity>
         )}
       </View>
-
       {/* Grid */}
-      <FlatList
-        data={gridData}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={{ gap: 8 }}
-        contentContainerStyle={{ gap: 8, paddingBottom: 24 }}
-        renderItem={({ item }) => (
-          <View style={styles.gridItem}>
-            <Text style={styles.gridItemText}>{item.label}</Text>
-          </View>
-        )}
-        ListEmptyComponent={
+      <View style={styles.grid}>
+        {gridData.map((item) => (
+          <TouchableOpacity
+            key={item.id}
+            style={styles.card}
+            activeOpacity={0.9}
+            onPress={() => onPressPost?.(item.id)}
+          >
+            {/* Image */}
+            <View style={styles.imageWrap}>
+              {item.imageUrl ? (
+                <Image source={{ uri: item.imageUrl }} style={styles.image} />
+              ) : (
+                <View style={[styles.image, styles.placeholder]}>
+                  <Text style={styles.placeholderText}>No Image</Text>
+                </View>
+              )}
+
+              {!!item.location && (
+                <View style={styles.locationPill}>
+                  <Ionicons name="location-outline" size={12} color="#fff" />
+                  <Text style={styles.locationPillText} numberOfLines={1}>
+                    {item.location}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Caption */}
+            {!!item.caption && (
+              <Text style={styles.caption} numberOfLines={2}>
+                {item.caption}
+              </Text>
+            )}
+          </TouchableOpacity>
+        ))}
+
+        {/* Empty state */}
+        {gridData.length === 0 && (
           <View style={{ paddingVertical: 24 }}>
             <Text style={styles.subtext}>
               {activeTab === "posts" ? "No posts yet." : "No saved posts yet."}
             </Text>
           </View>
-        }
-      />
+        )}
+      </View>
     </View>
   );
 }
@@ -205,6 +237,20 @@ const styles = StyleSheet.create({
 
   username: { fontSize: 18, fontWeight: "700", marginBottom: 2 },
   subtext: { fontSize: 12, color: "#666" },
+
+  regionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
+    minWidth: 0,
+  },
+  regionText: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontWeight: "600",
+    flexShrink: 1,
+  },
 
   editButton: {
     alignSelf: "flex-start",
@@ -245,26 +291,83 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 13, color: "#666", fontWeight: "600" },
   tabTextActive: { color: "#111" },
 
-  gridItem: {
+  postTile: {
     flex: 1,
     aspectRatio: 1,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#eee",
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: "#eee",
+  },
+  postImage: {
+    width: "100%",
+    height: "100%",
+  },
+  postPlaceholder: {
+    flex: 1,
+    backgroundColor: "#eee",
     alignItems: "center",
     justifyContent: "center",
-    padding: 8,
   },
-  gridItemText: { fontSize: 12, color: "#444", textAlign: "center" },
-  regionRow: {
+  placeholderText: { fontSize: 12, color: "#777" },
+  grid: {
+    marginTop: 10,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  card: {
+    width: "48%",
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+
+  imageWrap: {
+    position: "relative",
+  },
+
+  image: {
+    width: "100%",
+    height: 160,
+  },
+
+  placeholder: {
+    backgroundColor: "#eee",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  caption: {
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 10,
+    fontSize: 14,
+    color: "#444",
+    fontWeight: "700",
+    lineHeight: 18,
+  },
+
+  locationPill: {
+    position: "absolute",
+    left: 8,
+    bottom: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.55)",
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginTop: 4,
+    maxWidth: "75%",
   },
-  regionText: {
-    fontSize: 12,
-    color: "#6B7280",
+
+  locationPillText: {
+    color: "#fff",
+    fontSize: 11,
     fontWeight: "600",
+    flexShrink: 1,
   },
 });

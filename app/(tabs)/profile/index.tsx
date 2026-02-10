@@ -36,7 +36,12 @@ type UserProfile = {
   savedCount?: number;
 };
 
-type GridItem = { id: string; label: string };
+type PostPreview = {
+  id: string;
+  imageUrl?: string;
+  caption?: string;
+  location?: string;
+};
 
 export default function ProfileScreen() {
   const user = auth.currentUser;
@@ -45,8 +50,8 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"posts" | "saved">("posts");
 
-  const [posts, setPosts] = useState<GridItem[]>([]);
-  const [saved, setSaved] = useState<GridItem[]>([]);
+  const [posts, setPosts] = useState<PostPreview[]>([]);
+  const [saved, setSaved] = useState<PostPreview[]>([]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -103,18 +108,24 @@ export default function ProfileScreen() {
     );
 
     const unsub = onSnapshot(q, (snap) => {
-      const data: GridItem[] = [];
+      const data: PostPreview[] = [];
       snap.forEach((d) => {
         const p: any = d.data();
+
+        const locationText = p?.postLocation?.country || "";
+
         data.push({
           id: d.id,
-          label: p.caption?.trim() ? p.caption : "Post",
+          imageUrl: p.imageUrls?.[0] ?? "",
+          caption: p.caption ?? "",
+          location: locationText,
         });
       });
       setPosts(data);
     });
     return () => unsub();
   }, [user?.uid]);
+
   const photoSource = useMemo(() => {
     const url = profile?.photoURL;
     return url
@@ -160,8 +171,6 @@ export default function ProfileScreen() {
     });
   };
 
-  const gridData = activeTab === "posts" ? posts : saved;
-
   return (
     <SafeAreaView style={styles.container}>
       <ProfileView
@@ -179,7 +188,9 @@ export default function ProfileScreen() {
         savedCount={savedCount}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        gridData={gridData}
+        posts={posts}
+        saved={saved}
+        onPressPost={(id) => router.push({ pathname: "/post", params: { id } })}
         onPressEdit={() => router.push("/(tabs)/profile/edit")}
         onPressFollowers={() => openConnections("followers")}
         onPressFollowing={() => openConnections("following")}
