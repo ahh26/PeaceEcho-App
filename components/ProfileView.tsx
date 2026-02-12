@@ -1,6 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export type ProfileViewProfile = {
   username?: string;
@@ -82,7 +89,11 @@ export default function ProfileView({
 
   const gridData = activeTab === "posts" ? posts : saved;
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
       {/* Header */}
       <View style={styles.headerRow}>
         <Image source={photoSource} style={styles.avatar} />
@@ -214,12 +225,15 @@ export default function ProfileView({
           </View>
         )}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { backgroundColor: "#fff" },
+  content: {
+    paddingBottom: 24,
+  },
 
   headerRow: {
     flexDirection: "row",
@@ -311,13 +325,14 @@ const styles = StyleSheet.create({
   placeholderText: { fontSize: 12, color: "#777" },
   grid: {
     marginTop: 10,
+    padding: 10,
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
   },
   card: {
     width: "48%",
-    flex: 1,
+    marginBottom: 12,
     backgroundColor: "#fff",
     borderRadius: 12,
     overflow: "hidden",
