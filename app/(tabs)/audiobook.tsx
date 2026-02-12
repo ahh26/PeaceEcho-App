@@ -4,7 +4,7 @@ import {
   onSnapshot,
   orderBy,
   query,
-  where
+  where,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
@@ -12,6 +12,7 @@ import {
   Image,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -22,6 +23,8 @@ import { db } from "../../firebase";
 export default function AudiobookScreen() {
   const [books, setBooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     setLoading(true);
@@ -47,14 +50,28 @@ export default function AudiobookScreen() {
 
     return () => unsub();
   }, []);
+
+  const filteredBooks = books.filter((b) =>
+    (b.title ?? "").toLowerCase().includes(search.toLowerCase()),
+  );
   if (loading) {
     return <Text style={{ padding: 16 }}> Loading... </Text>;
   }
 
   return (
     <SafeAreaView style={styles.safe}>
+      {/* Search Bar */}
+      <View style={styles.searchWrapper}>
+        <TextInput
+          placeholder="Search audiobooks"
+          value={search}
+          onChangeText={setSearch}
+          style={styles.searchInput}
+        />
+      </View>
+
       <FlatList
-        data={books}
+        data={filteredBooks}
         keyExtractor={(item) => item.id}
         style={styles.screen}
         contentContainerStyle={styles.listContent}
@@ -123,5 +140,17 @@ const styles = StyleSheet.create({
 
   intro: {
     marginTop: 4,
+  },
+  searchWrapper: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  searchInput: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
   },
 });

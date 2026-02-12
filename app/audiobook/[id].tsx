@@ -64,7 +64,7 @@ export default function AudioBookDetail() {
   const [barWidth, setBarWidth] = useState(0);
   const [isScrubbing, setIsScrubbing] = useState(false);
 
-  const scrubXAnim = useRef(new Animated.Value(0)).current;
+  const scrubXAnim = useRef(new Animated.Value(0)).current; //for scrubbing
 
   const playbackWidth =
     barWidth && effectiveDur ? (effectivePos / effectiveDur) * barWidth : 0;
@@ -271,7 +271,7 @@ export default function AudioBookDetail() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#2d324f", // Spotify dark
+    backgroundColor: "#605042",
   },
 
   container: {
@@ -297,9 +297,9 @@ const styles = StyleSheet.create({
   },
 
   cover: {
-    width: 260,
-    height: 260,
-    borderRadius: 14,
+    width: 350,
+    height: 350,
+    borderRadius: 12,
   },
 
   title: {
