@@ -10,7 +10,14 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.PeaceEcho"
+      "bundleIdentifier": "com.anonymous.PeaceEcho",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio",
+          "audio"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +27,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.PeaceEcho"
     },
     "web": {
       "output": "static",
@@ -47,6 +55,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3444682a-1916-4554-8827-631327307014"
+      }
     }
   }
 }

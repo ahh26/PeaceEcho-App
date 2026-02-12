@@ -45,6 +45,8 @@ type PostPreview = {
 
 export default function ProfileScreen() {
   const user = auth.currentUser;
+  const admin_uid = "rL8PtYcFIIV5A8DP3YiSLxng4A92"; //can change the uid for admin later here
+  const isAdmin = user?.uid === admin_uid;
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,7 +73,7 @@ export default function ProfileScreen() {
       return () => {
         cancelled = true;
       };
-    }, [user?.uid])
+    }, [user?.uid]),
   );
 
   useEffect(() => {
@@ -104,7 +106,7 @@ export default function ProfileScreen() {
     const q = query(
       collection(db, "posts"),
       where("uid", "==", user.uid),
-      orderBy("createdAt", "desc")
+      orderBy("createdAt", "desc"),
     );
 
     const unsub = onSnapshot(q, (snap) => {
@@ -195,6 +197,14 @@ export default function ProfileScreen() {
         onPressFollowers={() => openConnections("followers")}
         onPressFollowing={() => openConnections("following")}
       />
+      {isAdmin && (
+        <TouchableOpacity
+          style={styles.adminButton}
+          onPress={() => router.push("/admin/upload-audiobook")}
+        >
+          <Text style={styles.adminButtonText}>Upload Audiobook (Admin)</Text>
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 }
@@ -222,5 +232,17 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 14,
     fontWeight: "600",
+  },
+  adminButton: {
+    marginTop: 12,
+    backgroundColor: "black",
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+
+  adminButtonText: {
+    color: "white",
+    fontWeight: "700",
   },
 });
