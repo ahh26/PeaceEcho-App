@@ -4,6 +4,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 import {
   collection,
+  documentId,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -128,6 +130,57 @@ export default function ProfileScreen() {
     return () => unsub();
   }, [user?.uid]);
 
+  // helper
+  function chunk<T>(arr: T[], size: number) {
+    const out: T[][] = [];
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+    return out;
+  }
+
+  useEffect(() => {
+    if (!user?.uid) return;
+    if (activeTab !== "saved") return;
+
+    const savedRef = collection(db, "users", user.uid, "savedPosts");
+    const savedQ = query(savedRef, orderBy("savedAt", "desc"));
+
+    const unsub = onSnapshot(savedQ, async (snap) => {
+      const postIds = snap.docs.map((d) => d.id);
+
+      if (postIds.length === 0) {
+        setSaved([]);
+        return;
+      }
+
+      const chunks = chunk(postIds, 10);
+      const allPosts: any[] = [];
+
+      for (const ids of chunks) {
+        const postsQ = query(
+          collection(db, "posts"),
+          where(documentId(), "in", ids),
+        );
+        const postsSnap = await getDocs(postsQ);
+        postsSnap.forEach((p) => allPosts.push({ id: p.id, ...p.data() }));
+      }
+
+      const byId = new Map(allPosts.map((p) => [p.id, p]));
+      const ordered: PostPreview[] = postIds
+        .map((pid) => byId.get(pid))
+        .filter(Boolean)
+        .map((p: any) => ({
+          id: p.id,
+          imageUrl: p.imageUrls?.[0] ?? "",
+          caption: p.caption ?? "",
+          location: p?.postLocation?.country || "",
+        }));
+
+      setSaved(ordered);
+    });
+
+    return () => unsub();
+  }, [user?.uid, activeTab]);
+
   const photoSource = useMemo(() => {
     const url = profile?.photoURL;
     return url
@@ -192,6 +245,8 @@ export default function ProfileScreen() {
         setActiveTab={setActiveTab}
         posts={posts}
         saved={saved}
+        isMe
+        showFollowButton={false}
         onPressPost={(id) => router.push({ pathname: "/post", params: { id } })}
         onPressEdit={() => router.push("/(tabs)/profile/edit")}
         onPressFollowers={() => openConnections("followers")}

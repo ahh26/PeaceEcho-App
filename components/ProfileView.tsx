@@ -50,6 +50,11 @@ type Props = {
   showEdit?: boolean;
   showSaved?: boolean;
 
+  isMe?: boolean;
+  showFollowButton?: boolean;
+  isFollowing?: boolean;
+  onPressFollow?: () => void;
+
   onPressEdit: () => void;
   onPressFollowers: () => void;
   onPressFollowing: () => void;
@@ -70,6 +75,10 @@ export default function ProfileView({
   saved,
   showEdit = true,
   showSaved = true,
+  isMe = false,
+  showFollowButton = false,
+  isFollowing = false,
+  onPressFollow,
   onPressEdit,
   onPressFollowers,
   onPressFollowing,
@@ -87,7 +96,7 @@ export default function ProfileView({
     .filter(Boolean)
     .join(", ");
 
-  const gridData = activeTab === "posts" ? posts : saved;
+  const gridData = activeTab === "posts" ? (posts ?? []) : (saved ?? []);
   return (
     <ScrollView
       style={styles.container}
@@ -113,12 +122,33 @@ export default function ProfileView({
               <Text style={styles.editButtonText}>Edit Profile</Text>
             </TouchableOpacity>
           )}
+
+          {showFollowButton && !isMe && (
+            <TouchableOpacity
+              style={[
+                styles.followButton,
+                isFollowing
+                  ? styles.followingButton
+                  : styles.followButtonFilled,
+              ]}
+              onPress={onPressFollow}
+              activeOpacity={0.85}
+            >
+              <Text
+                style={[
+                  styles.followText,
+                  isFollowing ? styles.followingText : styles.followTextFilled,
+                ]}
+              >
+                {isFollowing ? "Following" : "Follow"}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
       {/* Bio */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Bio</Text>
         <Text style={styles.bodyText}>{bio || "No bio yet."}</Text>
       </View>
 
@@ -385,4 +415,23 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     flexShrink: 1,
   },
+  followButton: {
+    alignSelf: "flex-start",
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  followButtonFilled: {
+    backgroundColor: "#111",
+    borderColor: "#111",
+  },
+  followingButton: {
+    backgroundColor: "#fff",
+  },
+  followText: { fontSize: 13, fontWeight: "700" },
+  followTextFilled: { color: "#fff" },
+  followingText: { color: "#111" },
 });

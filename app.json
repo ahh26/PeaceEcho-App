@@ -4,7 +4,7 @@
     "slug": "PeaceEcho",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/peaceEcho-logo.png",
     "scheme": "peaceecho",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -12,10 +12,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.PeaceEcho",
       "infoPlist": {
-        "UIBackgroundModes": [
-          "audio",
-          "audio"
-        ],
+        "UIBackgroundModes": ["audio", "audio"],
         "ITSAppUsesNonExemptEncryption": false
       }
     },

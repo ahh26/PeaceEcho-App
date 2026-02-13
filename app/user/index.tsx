@@ -1,19 +1,49 @@
 import ProfileView from "@/components/ProfileView";
-import { getUserProfile } from "@/lib/userProfile";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import {
+  collection,
+  doc,
+  increment,
+  onSnapshot,
+  orderBy,
+  query,
+  runTransaction,
+  serverTimestamp,
+  where,
+} from "firebase/firestore";
+import { auth, db } from "../../firebase";
+
+type Region = {
+  countryCode?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  lat?: number;
+  lng?: number;
+  source?: "manual" | "gps";
+};
+
 type UserProfile = {
   username?: string;
   email?: string;
   bio?: string;
   photoURL?: string;
+  region?: Region;
   followerCount?: number;
   followingCount?: number;
   postCount?: number;
+};
+
+type PostPreview = {
+  id: string;
+  imageUrl?: string;
+  caption?: string;
+  location?: string;
 };
 
 type GridItem = { id: string; label: string };
@@ -23,28 +53,123 @@ export default function UserScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Posts only (placeholder for now)
-  const [posts, setPosts] = useState<GridItem[]>([]);
+  const [posts, setPosts] = useState<PostPreview[]>([]);
   const [activeTab, setActiveTab] = useState<"posts" | "saved">("posts");
+
+  const me = auth.currentUser;
+  const isMe = me?.uid === uid;
+  const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
     if (!uid) {
       setLoading(false);
       return;
     }
-    const load = async () => {
-      try {
-        const data = await getUserProfile(uid);
-        setProfile((data ?? null) as UserProfile | null);
-      } catch (e) {
-        console.log("Failed to load public user:", e);
-        setProfile(null);
-      } finally {
+
+    const userRef = doc(db, "users", uid);
+
+    const unsub = onSnapshot(
+      userRef,
+      (snap) => {
+        if (snap.exists()) {
+          setProfile(snap.data() as any);
+        } else {
+          setProfile(null);
+        }
         setLoading(false);
-      }
-    };
-    load();
+      },
+      (err) => {
+        console.log("UserScreen user snapshot error:", err);
+        setProfile(null);
+        setLoading(false);
+      },
+    );
+
+    return () => unsub();
   }, [uid]);
+
+  useEffect(() => {
+    if (!uid) return;
+    const me = auth.currentUser;
+    if (!me) return;
+    if (me.uid === uid) return;
+
+    const followingRef = doc(db, "users", me.uid, "following", uid);
+
+    const unsub = onSnapshot(followingRef, (snap) => {
+      setIsFollowing(snap.exists());
+    });
+
+    return () => unsub();
+  }, [uid]);
+
+  useEffect(() => {
+    if (!uid) return;
+
+    const q = query(
+      collection(db, "posts"),
+      where("uid", "==", uid),
+      orderBy("createdAt", "desc"),
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      const data: PostPreview[] = [];
+      snap.forEach(
+        (d) => {
+          const p: any = d.data();
+          data.push({
+            id: d.id,
+            imageUrl: p.imageUrls?.[0] ?? "",
+            caption: p.caption ?? "",
+            location: p?.postLocation?.country || "",
+          });
+        },
+        (err: any) => {
+          console.log("[UserScreen] posts listener error:", err);
+        },
+      );
+      setPosts(data);
+    });
+
+    return () => unsub();
+  }, [uid]);
+
+  const toggleFollow = async () => {
+    if (!uid) return;
+    const me = auth.currentUser;
+    if (!me) return;
+    if (me.uid === uid) return;
+
+    const myFollowingRef = doc(db, "users", me.uid, "following", uid);
+    const theirFollowersRef = doc(db, "users", uid, "followers", me.uid);
+
+    const myUserRef = doc(db, "users", me.uid);
+    const theirUserRef = doc(db, "users", uid);
+
+    try {
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(myFollowingRef);
+
+        if (snap.exists()) {
+          // unfollow
+          tx.delete(myFollowingRef);
+          tx.delete(theirFollowersRef);
+
+          tx.update(myUserRef, { followingCount: increment(-1) });
+          tx.update(theirUserRef, { followerCount: increment(-1) });
+        } else {
+          // follow
+          tx.set(myFollowingRef, { createdAt: serverTimestamp() });
+          tx.set(theirFollowersRef, { createdAt: serverTimestamp() });
+
+          tx.update(myUserRef, { followingCount: increment(1) });
+          tx.update(theirUserRef, { followerCount: increment(1) });
+        }
+      });
+    } catch (e) {
+      console.log("toggleFollow failed:", e);
+    }
+  };
 
   const photoSource = useMemo(() => {
     const url = profile?.photoURL;
@@ -94,6 +219,7 @@ export default function UserScreen() {
           email: "", // public: don’t show email
           bio: profile.bio ?? "",
           photoURL: profile.photoURL,
+          region: profile?.region,
         }}
         photoSource={photoSource}
         followers={profile.followerCount ?? 0}
@@ -102,7 +228,13 @@ export default function UserScreen() {
         savedCount={0}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        gridData={posts} // posts only
+        posts={posts} // posts only
+        saved={[]}
+        isMe={auth.currentUser?.uid === uid}
+        showFollowButton
+        isFollowing={isFollowing}
+        onPressFollow={toggleFollow}
+        onPressPost={(id) => router.push({ pathname: "/post", params: { id } })}
         onPressEdit={() => {}}
         onPressFollowers={() =>
           router.push({

@@ -1,12 +1,22 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { doc, getDoc, runTransaction } from "firebase/firestore";
-import { useEffect, useMemo, useState } from "react";
+import {
+  collection,
+  doc,
+  increment,
+  onSnapshot,
+  orderBy,
+  query,
+  runTransaction,
+  serverTimestamp,
+} from "firebase/firestore";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
   ScrollView,
+  Share,
   Text,
   TextInput,
   TouchableOpacity,
@@ -25,6 +35,36 @@ type CommentUI = {
   createdAtLabel?: string;
 };
 
+function formatPostTime(createdAt: any) {
+  if (!createdAt) return "";
+
+  // Firestore Timestamp -> JS Date
+  const d: Date =
+    typeof createdAt?.toDate === "function"
+      ? createdAt.toDate()
+      : new Date(createdAt);
+
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+
+  if (diffMin < 1) return "now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return `${diffDay}d ago`;
+
+  // long time ago -> show date
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export default function PostDetail() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const [post, setPost] = useState<any>(null);
@@ -38,49 +78,63 @@ export default function PostDetail() {
   const [comments, setComments] = useState<CommentUI[]>([]);
 
   useEffect(() => {
-    try {
-      console.log("AUTH app name:", auth.app.name);
-      console.log("AUTH app options projectId:", auth.app.options.projectId);
+    if (!id) return;
 
-      // Firestore internal fields (not official API, but useful for debugging)
-      console.log("DB projectId:", (db as any)?._databaseId?.projectId);
-      console.log("DB firestore app name:", (db as any)?._app?.name);
-    } catch (e) {
-      console.log("debug logs failed:", e);
-    }
-  }, []);
+    const postRef = doc(db, "posts", String(id));
+    const unsub = onSnapshot(postRef, (snap) => {
+      if (snap.exists()) setPost({ id: snap.id, ...snap.data() });
+    });
 
+    return unsub;
+  }, [id]);
+
+  const likeCount = Number(post?.likeCount ?? 0);
+  const saveCount = Number(post?.saveCount ?? 0);
+  const commentCount = Number(post?.commentCount ?? 0);
+  const repostCount = Number(post?.repostCount ?? 0);
+
+  //likes+saves
+  useEffect(() => {
+    if (!id || !auth.currentUser) return;
+
+    const uid = auth.currentUser.uid;
+
+    const likeRef = doc(db, "posts", String(id), "likes", uid);
+    const saveRef = doc(db, "posts", String(id), "saves", uid);
+
+    const unsubLike = onSnapshot(likeRef, (snap) => setLiked(snap.exists()));
+    const unsubSave = onSnapshot(saveRef, (snap) => setSaved(snap.exists()));
+
+    return () => {
+      unsubLike();
+      unsubSave();
+    };
+  }, [id]);
+
+  //subsribe comments
   useEffect(() => {
     if (!id) return;
 
-    (async () => {
-      const ref = doc(db, "posts", String(id));
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        setPost(snap.data());
-      }
-    })();
+    const q = query(
+      collection(db, "posts", String(id), "comments"),
+      orderBy("createdAt", "desc"),
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      const rows: CommentUI[] = snap.docs.map((d) => {
+        const data = d.data() as any;
+        return {
+          id: d.id,
+          username: data.username ?? "User",
+          text: data.text ?? "",
+          createdAtLabel: formatPostTime(data.createdAt),
+        };
+      });
+      setComments(rows);
+    });
+
+    return unsub;
   }, [id]);
-
-  const likeCount = useMemo(() => {
-    const base = Number(post?.likeCount ?? 0);
-    return liked ? base + 1 : base;
-  }, [post?.likeCount, liked]);
-
-  const commentCount = useMemo(() => {
-    const base = Number(post?.commentCount ?? 0);
-    return base + comments.length;
-  }, [post?.commentCount, comments.length]);
-
-  const saveCount = useMemo(() => {
-    const base = Number(post?.saveCount ?? 0);
-    return saved ? base + 1 : base;
-  }, [post?.saveCount, saved]);
-
-  const repostCount = useMemo(
-    () => Number(post?.repostCount ?? 0),
-    [post?.repostCount]
-  );
 
   if (!post) {
     return (
@@ -149,7 +203,7 @@ export default function PostDetail() {
           },
         },
       ],
-      { cancelable: true }
+      { cancelable: true },
     );
   };
 
@@ -161,23 +215,109 @@ export default function PostDetail() {
     });
   };
 
-  const onPressShare = () => {
-    // UI-only for now
-    console.log("Share pressed:", post?.id);
+  const toggleLike = async () => {
+    if (!id) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const postRef = doc(db, "posts", String(id));
+    const likeRef = doc(db, "posts", String(id), "likes", user.uid);
+
+    try {
+      await runTransaction(db, async (tx) => {
+        const likeSnap = await tx.get(likeRef);
+
+        if (likeSnap.exists()) {
+          tx.delete(likeRef);
+          tx.update(postRef, { likeCount: increment(-1) });
+        } else {
+          tx.set(likeRef, { createdAt: serverTimestamp() });
+          tx.update(postRef, { likeCount: increment(1) });
+        }
+      });
+    } catch (e) {
+      console.log("toggleLike failed:", e);
+    }
   };
 
-  const onSubmitComment = () => {
+  const toggleSave = async () => {
+    if (!id) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const postRef = doc(db, "posts", String(id));
+
+    // save record under the post (fast "isSaved?" check)
+    const postSaveRef = doc(db, "posts", String(id), "saves", user.uid);
+
+    // save record under the user (fast "Saved Posts page" query)
+    const userSaveRef = doc(db, "users", user.uid, "savedPosts", String(id));
+
+    try {
+      await runTransaction(db, async (tx) => {
+        const saveSnap = await tx.get(postSaveRef);
+
+        if (saveSnap.exists()) {
+          tx.delete(postSaveRef);
+          tx.delete(userSaveRef);
+          tx.update(postRef, { saveCount: increment(-1) });
+        } else {
+          tx.set(postSaveRef, { createdAt: serverTimestamp() });
+          tx.set(userSaveRef, {
+            postId: String(id),
+            savedAt: serverTimestamp(),
+          });
+          tx.update(postRef, { saveCount: increment(1) });
+        }
+      });
+    } catch (e) {
+      console.log("toggleSave failed:", e);
+    }
+  };
+
+  const toggleShare = async () => {
+    try {
+      const caption = post?.caption ?? "";
+      const link = `peaceecho://post?id=${String(id)}`;
+
+      await Share.share({
+        message: `Check out this post on PeaceEcho \n\n"${caption}"\n\n${link}`,
+      });
+    } catch (e) {
+      console.log("share failed:", e);
+    }
+  };
+
+  const onSubmitComment = async () => {
+    if (!id) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
     const text = commentText.trim();
     if (!text) return;
 
-    const newComment: CommentUI = {
-      id: `${Date.now()}`,
-      username: "You",
-      text,
-      createdAtLabel: "now",
-    };
-    setComments((prev) => [newComment, ...prev]);
-    setCommentText("");
+    const postRef = doc(db, "posts", String(id));
+    const commentsRef = collection(db, "posts", String(id), "comments");
+
+    try {
+      setCommentText("");
+
+      await runTransaction(db, async (tx) => {
+        const newCommentRef = doc(commentsRef);
+        tx.set(newCommentRef, {
+          uid: user.uid,
+          username: auth.currentUser?.displayName ?? "User", // can replace with profile username later
+          text,
+          createdAt: serverTimestamp(),
+        });
+
+        tx.update(postRef, { commentCount: increment(1) });
+      });
+    } catch (e) {
+      console.log("comment failed:", e);
+      Alert.alert("Comment failed", "Please try again.");
+      setCommentText(text);
+    }
   };
 
   return (
@@ -238,6 +378,10 @@ export default function PostDetail() {
                 >
                   {post.username || "Anonymous"}
                 </Text>
+
+                <Text style={{ fontSize: 12, color: "#666", marginTop: 2 }}>
+                  {formatPostTime(post?.createdAt)}
+                </Text>
               </View>
             </TouchableOpacity>
 
@@ -245,7 +389,7 @@ export default function PostDetail() {
             <View style={{ width: 40, alignItems: "flex-end" }}>
               {isOwner ? (
                 <TouchableOpacity onPress={onDeletePost} style={{ padding: 6 }}>
-                  <Ionicons name="trash-outline" size={22} color="#E53935" />
+                  <Ionicons name="trash-outline" size={22} color="#768093" />
                 </TouchableOpacity>
               ) : (
                 <View style={{ width: 22 }} />
@@ -391,7 +535,7 @@ export default function PostDetail() {
             >
               {/* Like */}
               <TouchableOpacity
-                onPress={() => setLiked((v) => !v)}
+                onPress={toggleLike}
                 style={{ alignItems: "center", minWidth: 44 }}
               >
                 <Ionicons
@@ -406,7 +550,7 @@ export default function PostDetail() {
 
               {/* Save */}
               <TouchableOpacity
-                onPress={() => setSaved((v) => !v)}
+                onPress={toggleSave}
                 style={{ alignItems: "center", minWidth: 44 }}
               >
                 <Ionicons
@@ -419,12 +563,12 @@ export default function PostDetail() {
                 </Text>
               </TouchableOpacity>
 
-              {/* Repost */}
+              {/* Share */}
               <TouchableOpacity
-                onPress={() => console.log("repost pressed")}
+                onPress={toggleShare}
                 style={{ alignItems: "center", minWidth: 44 }}
               >
-                <Ionicons name="repeat-outline" size={22} color="#111" />
+                <Ionicons name="share-outline" size={22} color="#111" />
                 <Text style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
                   {repostCount}
                 </Text>

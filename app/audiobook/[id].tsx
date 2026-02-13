@@ -181,9 +181,9 @@ export default function AudioBookDetail() {
         {/* Top Bar */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-down" size={28} color="white" />
+            <Ionicons name="chevron-down" size={28} color="#4D5161" />
           </TouchableOpacity>
-          <Text style={styles.topTitle}>Audiobook</Text>
+          <Text style={styles.topTitle}>Listening Now</Text>
           <View style={{ width: 28 }} />
         </View>
 
@@ -240,19 +240,19 @@ export default function AudioBookDetail() {
         {/* Controls */}
         <View style={styles.controls}>
           <TouchableOpacity onPress={() => jumpBy(-15000)}>
-            <Ionicons name="play-back" size={28} color="white" />
+            <Ionicons name="play-back" size={28} color="#495666" />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.playBtn} onPress={onPressPlay}>
             <Ionicons
               name={isThis && isPlaying ? "pause" : "play"}
               size={26}
-              color="black"
+              color="white"
             />
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => jumpBy(15000)}>
-            <Ionicons name="play-forward" size={28} color="white" />
+            <Ionicons name="play-forward" size={28} color="#495666" />
           </TouchableOpacity>
         </View>
 
@@ -271,7 +271,7 @@ export default function AudioBookDetail() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#605042",
+    backgroundColor: "#FDF9F0",
   },
 
   container: {
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   },
 
   topTitle: {
-    color: "white",
+    color: "#222934",
     fontWeight: "700",
     opacity: 0.7,
   },
@@ -303,14 +303,14 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: "white",
+    color: "#242737",
     fontSize: 22,
     fontWeight: "800",
     marginTop: 20,
   },
 
   intro: {
-    color: "white",
+    color: "#242633",
     opacity: 0.7,
     marginTop: 6,
   },
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   },
 
   time: {
-    color: "#aaa",
+    color: "#A0A5AD",
     fontSize: 12,
   },
 
@@ -338,20 +338,20 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 999,
-    backgroundColor: "white",
+    backgroundColor: "#93A794",
     alignItems: "center",
     justifyContent: "center",
   },
 
   transcriptTitle: {
-    color: "white",
+    color: "black",
     fontWeight: "800",
     marginTop: 30,
     fontSize: 18,
   },
 
   transcript: {
-    color: "white",
+    color: "black",
     opacity: 0.85,
     marginTop: 10,
     lineHeight: 22,
@@ -364,14 +364,14 @@ const styles = StyleSheet.create({
 
   progressTrack: {
     height: 4,
-    backgroundColor: "#181818",
+    backgroundColor: "#ECEFE3",
     borderRadius: 999,
     overflow: "hidden",
   },
 
   progressInner: {
     height: 4,
-    backgroundColor: "white",
+    backgroundColor: "#93A794",
     borderRadius: 999,
   },
 
@@ -381,6 +381,6 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 999,
-    backgroundColor: "white",
+    backgroundColor: "#93A794",
   },
 });
