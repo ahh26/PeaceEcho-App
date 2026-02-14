@@ -1,8 +1,7 @@
 import ProfileView from "@/components/ProfileView";
-import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
@@ -30,6 +29,7 @@ type Region = {
 
 type UserProfile = {
   username?: string;
+  displayName?: string;
   email?: string;
   bio?: string;
   photoURL?: string;
@@ -201,27 +201,11 @@ export default function UserScreen() {
   }
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, paddingHorizontal: 24, backgroundColor: "#fff" }}
-    >
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginBottom: 8,
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={{ paddingRight: 12 }}
-        >
-          <Ionicons name="chevron-back" size={28} color="#111" />
-        </TouchableOpacity>
-      </View>
-
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#FAF7F0" }}>
       <ProfileView
         profile={{
           username: profile.username ?? "User",
+          displayName: profile.displayName || profile.username || "User",
           email: "", // public: don’t show email
           bio: profile.bio ?? "",
           photoURL: profile.photoURL,
@@ -262,6 +246,7 @@ export default function UserScreen() {
             },
           })
         }
+        onPressBack={() => router.back()}
         showEdit={false}
         showSaved={false}
       />

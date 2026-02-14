@@ -69,7 +69,7 @@ function PhotosStrip({
                   if (!canDelete) {
                     Alert.alert(
                       "Keep 1 photo",
-                      "A post must have at least 1 photo."
+                      "A post must have at least 1 photo.",
                     );
                     return;
                   }
@@ -265,7 +265,7 @@ export default function EditPostScreen() {
         const blob = await uriToBlob(uri);
         const imageRef = ref(
           storage,
-          `posts/${user.uid}/${Date.now()}-${Math.random()}.jpg`
+          `posts/${user.uid}/${Date.now()}-${Math.random()}.jpg`,
         );
         await uploadBytes(imageRef, blob);
         const downloadUrl = await getDownloadURL(imageRef);
@@ -289,6 +289,7 @@ export default function EditPostScreen() {
         imageUrls: uploadedUrls,
         createdAt: serverTimestamp(),
         username: userProfile?.username || "Anonymous",
+        displayName: userProfile?.displayName,
         userPhotoURL: userProfile?.photoURL || null,
         ...(hasPostLocation ? { postLocation } : {}),
       });
@@ -305,7 +306,7 @@ export default function EditPostScreen() {
         console.log("SERVER RESPONSE >>>", error.serverResponse);
       Alert.alert(
         "Upload failed",
-        error?.message ? String(error.message) : "Unknown error"
+        error?.message ? String(error.message) : "Unknown error",
       );
     } finally {
       setPosting(false);
@@ -430,7 +431,7 @@ export default function EditPostScreen() {
                         stateName: "",
                         city: "",
                         source: "manual",
-                      }
+                      },
                 );
               }}
             >

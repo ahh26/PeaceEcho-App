@@ -40,7 +40,7 @@ type Region = {
 
 type UserProfile = {
   username?: string;
-  email?: string;
+  displayName?: string;
   bio?: string;
   photoURL?: string;
   region?: Region & { region?: string };
@@ -55,6 +55,7 @@ export default function ProfileEdit() {
   const [uploading, setUploading] = useState(false);
 
   const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
 
   const [region, setRegion] = useState<Region>({
@@ -76,7 +77,7 @@ export default function ProfileEdit() {
     // keep empty strings if you want to intentionally clear fields;
     // only remove undefined
     return Object.fromEntries(
-      Object.entries(obj).filter(([_, v]) => v !== undefined)
+      Object.entries(obj).filter(([_, v]) => v !== undefined),
     ) as Partial<T>;
   }
 
@@ -124,6 +125,7 @@ export default function ProfileEdit() {
           const typed = data as UserProfile;
           setProfile(typed);
           setUsername(typed.username ?? "");
+          setDisplayName(typed.displayName ?? "");
           setBio(typed.bio ?? "");
 
           const oldRegionText = (typed.region as any)?.region as
@@ -158,6 +160,8 @@ export default function ProfileEdit() {
     try {
       const finalPhotoURL = profile?.photoURL ?? "";
       const usernameChanged = username.trim() !== (profile?.username ?? "");
+      const displayNameChanged =
+        displayName.trim() !== (profile?.displayName ?? "");
       const bioChanged = bio !== (profile?.bio ?? "");
 
       // If user cleared everything, store an empty object
@@ -179,6 +183,7 @@ export default function ProfileEdit() {
       await updateProfileAndBackfillPosts({
         uid: user.uid,
         newUsername: usernameChanged ? username.trim() : undefined,
+        newDisplayName: displayNameChanged ? displayName.trim() : undefined,
         newPhotoURL: undefined,
         newBio: bioChanged ? bio : undefined,
         newRegion: regionPayload,
@@ -187,10 +192,10 @@ export default function ProfileEdit() {
       setProfile((prev) => ({
         ...(prev || {}),
         username: username.trim(),
+        displayName: displayName.trim(),
         bio,
         photoURL: finalPhotoURL,
         region: isEmptyRegion ? undefined : (regionPayload as Region),
-        email: (prev && prev.email) || user.email || "",
       }));
 
       router.push("/(tabs)/profile");
@@ -247,6 +252,7 @@ export default function ProfileEdit() {
       await updateProfileAndBackfillPosts({
         uid: user.uid,
         newUsername: username.trim(),
+        newDisplayName: displayName.trim(),
         newPhotoURL: downloadUrl,
         newBio: bio,
         newRegion: regionPayload,
@@ -256,9 +262,9 @@ export default function ProfileEdit() {
         ...(prev || {}),
         photoURL: downloadUrl,
         username: (prev && prev.username) || username,
+        displayName: displayName.trim(),
         bio: (prev && prev.bio) || bio,
         region: isEmptyRegion ? undefined : (regionPayload as Region),
-        email: (prev && prev.email) || user.email || "",
       }));
     } catch (err) {
       alert("Failed to upload profile picture");
@@ -276,7 +282,7 @@ export default function ProfileEdit() {
       if (status !== "granted") {
         Alert.alert(
           "Permission needed",
-          "Allow location access to autofill your region."
+          "Allow location access to autofill your region.",
         );
         return;
       }
@@ -300,7 +306,7 @@ export default function ProfileEdit() {
       const stateNameFromGPS = place?.region ?? "";
       const stateList = iso ? State.getStatesOfCountry(iso) : [];
       const matchedState = stateList.find(
-        (s) => s.name.toLowerCase() === stateNameFromGPS.toLowerCase()
+        (s) => s.name.toLowerCase() === stateNameFromGPS.toLowerCase(),
       );
 
       setRegion({
@@ -380,11 +386,15 @@ export default function ProfileEdit() {
             </TouchableOpacity>
           </View>
 
-          {/* Email */}
-          <Text style={styles.label}>Email</Text>
-          <Text style={styles.readOnlyField}>
-            {profile?.email || user.email || ""}
-          </Text>
+          {/* Display Name */}
+          <Text style={styles.label}>Name</Text>
+          <TextInput
+            style={styles.input}
+            value={displayName}
+            onChangeText={setDisplayName}
+            placeholder="Enter your name"
+            autoCapitalize="none"
+          />
 
           {/* Username */}
           <Text style={styles.label}>Username</Text>
@@ -507,7 +517,7 @@ export default function ProfileEdit() {
                 if (!hasStates) {
                   Alert.alert(
                     "No states found",
-                    "This country may not have states/provinces in the dataset. You can leave it blank."
+                    "This country may not have states/provinces in the dataset. You can leave it blank.",
                   );
                   return;
                 }

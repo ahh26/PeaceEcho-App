@@ -1,6 +1,5 @@
 import ProfileView from "@/components/ProfileView";
 import { getUserProfile } from "@/lib/userProfile";
-import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 import {
@@ -13,7 +12,7 @@ import {
   where,
 } from "firebase/firestore";
 import React, { useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db } from "../../../firebase";
 
@@ -29,6 +28,7 @@ type Region = {
 
 type UserProfile = {
   username?: string;
+  displayName?: string;
   email?: string;
   bio?: string;
   photoURL?: string;
@@ -229,24 +229,10 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "flex-end",
-          paddingTop: 6,
-        }}
-      >
-        <TouchableOpacity
-          onPress={() => router.push("/settings")}
-          style={{ padding: 6 }}
-        >
-          <Ionicons name="settings-outline" size={22} color="#111" />
-        </TouchableOpacity>
-      </View>
-
       <ProfileView
         profile={{
           username: profile?.username ?? "Unnamed",
+          displayName: profile?.displayName || profile?.username || "User",
           email: profile?.email ?? user.email ?? "",
           bio: profile?.bio ?? "",
           photoURL: profile?.photoURL,
@@ -267,6 +253,7 @@ export default function ProfileScreen() {
         onPressEdit={() => router.push("/(tabs)/profile/edit")}
         onPressFollowers={() => openConnections("followers")}
         onPressFollowing={() => openConnections("following")}
+        onPressSettings={() => router.push("/settings")}
       />
       {isAdmin && (
         <TouchableOpacity
@@ -286,12 +273,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
-    backgroundColor: "#fff",
+    backgroundColor: "#FAF7F0",
   },
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    backgroundColor: "#fff",
+    backgroundColor: "#FAF7F0",
   },
   primaryButton: {
     paddingVertical: 10,

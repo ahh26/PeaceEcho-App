@@ -11,6 +11,7 @@ import {
 
 export type ProfileViewProfile = {
   username?: string;
+  displayName?: string;
   email?: string;
   bio?: string;
   photoURL?: string;
@@ -29,8 +30,6 @@ export type PostPreview = {
   caption?: string;
   location?: string;
 };
-
-type GridItem = { id: string; label: string };
 
 type Props = {
   profile: ProfileViewProfile;
@@ -58,6 +57,8 @@ type Props = {
   onPressEdit: () => void;
   onPressFollowers: () => void;
   onPressFollowing: () => void;
+  onPressSettings?: () => void;
+  onPressBack?: () => void;
 
   onPressPost?: (postId: string) => void;
 };
@@ -82,10 +83,12 @@ export default function ProfileView({
   onPressEdit,
   onPressFollowers,
   onPressFollowing,
+  onPressBack,
+  onPressSettings,
   onPressPost,
 }: Props) {
   const username = profile.username ?? "Unnamed";
-  const email = profile.email ?? "";
+  const displayName = profile.displayName || profile.username || "User";
   const bio = profile.bio ?? "";
 
   const regionText = [
@@ -97,89 +100,154 @@ export default function ProfileView({
     .join(", ");
 
   const gridData = activeTab === "posts" ? (posts ?? []) : (saved ?? []);
+
+  const fmt = (n: number) => {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+    return String(n);
+  };
+
+  const postNumber = postCount;
+
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <Image source={photoSource} style={styles.avatar} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.username}>{username}</Text>
-          {/* {!!email && <Text style={styles.subtext}>{email}</Text>} */}
+      {/* Top bar */}
+      <View style={styles.topBar}>
+        {/* Left: Back (optional) */}
+        {onPressBack ? (
+          <TouchableOpacity
+            onPress={onPressBack}
+            style={styles.topIconBtn}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="chevron-back" size={22} color={stylesVars.sand} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.topSlot} />
+        )}
 
-          {!!regionText && (
-            <View style={styles.regionRow}>
-              <Ionicons name="location-outline" size={14} color="#6B7280" />
-              <Text style={styles.regionText}>{regionText}</Text>
-            </View>
-          )}
+        {/* Middle: handle */}
+        <Text style={styles.handleText} numberOfLines={1}>
+          @{username}
+        </Text>
 
-          {showEdit && (
-            <TouchableOpacity style={styles.editButton} onPress={onPressEdit}>
-              <Text style={styles.editButtonText}>Edit Profile</Text>
-            </TouchableOpacity>
-          )}
+        {/* Right: Settings (optional) */}
+        {onPressSettings ? (
+          <TouchableOpacity
+            onPress={onPressSettings}
+            style={styles.topIconBtn}
+            activeOpacity={0.85}
+          >
+            <Ionicons
+              name="settings-outline"
+              size={20}
+              color={stylesVars.sand}
+            />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.topSlot} />
+        )}
+      </View>
 
-          {showFollowButton && !isMe && (
-            <TouchableOpacity
-              style={[
-                styles.followButton,
-                isFollowing
-                  ? styles.followingButton
-                  : styles.followButtonFilled,
-              ]}
-              onPress={onPressFollow ?? (() => {})}
-              disabled={!onPressFollow}
-              activeOpacity={0.85}
-            >
-              <Text
-                style={[
-                  styles.followText,
-                  isFollowing ? styles.followingText : styles.followTextFilled,
-                ]}
-              >
-                {isFollowing ? "Following" : "Follow"}
-              </Text>
-            </TouchableOpacity>
-          )}
+      {/* Avatar */}
+      <View style={styles.avatarWrap}>
+        <View style={styles.avatarRing}>
+          <Image source={photoSource} style={styles.avatar} />
         </View>
       </View>
 
+      {/* Name  */}
+      <Text style={styles.displayName} numberOfLines={1}>
+        {displayName}
+      </Text>
+
+      {/* Location */}
+      {!!regionText && (
+        <View style={styles.locationRow}>
+          <Ionicons name="location-outline" size={14} color={stylesVars.sand} />
+          <Text style={styles.locationText} numberOfLines={1}>
+            {regionText}
+          </Text>
+        </View>
+      )}
+
       {/* Bio */}
-      <View style={styles.section}>
-        <Text style={styles.bodyText}>{bio || "No bio yet."}</Text>
-      </View>
+      <Text style={styles.bioText} numberOfLines={3}>
+        {bio || "No bio yet."}
+      </Text>
 
       {/* Stats */}
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{postCount}</Text>
-          <Text style={styles.statLabel}>Posts</Text>
+          <Text style={styles.statNumber}>{fmt(postNumber)}</Text>
+          <Text style={styles.statLabel}>POSTS</Text>
         </View>
 
         <TouchableOpacity style={styles.statItem} onPress={onPressFollowers}>
-          <Text style={styles.statNumber}>{followers}</Text>
-          <Text style={styles.statLabel}>Followers</Text>
+          <Text style={styles.statNumber}>{fmt(followers)}</Text>
+          <Text style={styles.statLabel}>FOLLOWERS</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.statItem} onPress={onPressFollowing}>
-          <Text style={styles.statNumber}>{following}</Text>
-          <Text style={styles.statLabel}>Following</Text>
+          <Text style={styles.statNumber}>{fmt(following)}</Text>
+          <Text style={styles.statLabel}>FOLLOWING</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Tabs */}
-      <View style={styles.tabBar}>
+      {/* Primary action row */}
+      <View style={styles.actionRow}>
+        {showEdit && isMe ? (
+          <>
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={onPressEdit}
+              activeOpacity={0.9}
+            >
+              <Text style={styles.primaryBtnText}>Edit Profile</Text>
+            </TouchableOpacity>
+          </>
+        ) : showFollowButton && !isMe ? (
+          <TouchableOpacity
+            style={[
+              styles.primaryBtn,
+              isFollowing ? styles.primaryBtnGhost : null,
+            ]}
+            onPress={onPressFollow}
+            activeOpacity={0.9}
+          >
+            <Text
+              style={[
+                styles.primaryBtnText,
+                isFollowing ? styles.primaryBtnGhostText : null,
+              ]}
+            >
+              {isFollowing ? "Following" : "Follow"}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      {/* Tabs (pills) */}
+      <View style={styles.tabs}>
         <TouchableOpacity
           style={[
-            styles.tabItem,
-            activeTab === "posts" && styles.tabItemActive,
+            styles.tabPill,
+            activeTab === "posts" && styles.tabPillActive,
           ]}
           onPress={() => setActiveTab("posts")}
+          activeOpacity={0.9}
         >
+          <Ionicons
+            name="grid-outline"
+            size={16}
+            color={
+              activeTab === "posts" ? stylesVars.sand : stylesVars.inkMuted
+            }
+          />
           <Text
             style={[
               styles.tabText,
@@ -193,11 +261,19 @@ export default function ProfileView({
         {showSaved && (
           <TouchableOpacity
             style={[
-              styles.tabItem,
-              activeTab === "saved" && styles.tabItemActive,
+              styles.tabPill,
+              activeTab === "saved" && styles.tabPillActive,
             ]}
             onPress={() => setActiveTab("saved")}
+            activeOpacity={0.9}
           >
+            <Ionicons
+              name="bookmark-outline"
+              size={16}
+              color={
+                activeTab === "saved" ? stylesVars.sand : stylesVars.inkMuted
+              }
+            />
             <Text
               style={[
                 styles.tabText,
@@ -209,48 +285,29 @@ export default function ProfileView({
           </TouchableOpacity>
         )}
       </View>
+
       {/* Grid */}
       <View style={styles.grid}>
         {gridData.map((item) => (
           <TouchableOpacity
             key={item.id}
-            style={styles.card}
-            activeOpacity={0.9}
+            style={styles.tile}
+            activeOpacity={0.92}
             onPress={() => onPressPost?.(item.id)}
           >
-            {/* Image */}
-            <View style={styles.imageWrap}>
-              {item.imageUrl ? (
-                <Image source={{ uri: item.imageUrl }} style={styles.image} />
-              ) : (
-                <View style={[styles.image, styles.placeholder]}>
-                  <Text style={styles.placeholderText}>No Image</Text>
-                </View>
-              )}
-
-              {!!item.location && (
-                <View style={styles.locationPill}>
-                  <Ionicons name="location-outline" size={12} color="#fff" />
-                  <Text style={styles.locationPillText} numberOfLines={1}>
-                    {item.location}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* Caption */}
-            {!!item.caption && (
-              <Text style={styles.caption} numberOfLines={2}>
-                {item.caption}
-              </Text>
+            {item.imageUrl ? (
+              <Image source={{ uri: item.imageUrl }} style={styles.tileImg} />
+            ) : (
+              <View style={[styles.tileImg, styles.tilePlaceholder]}>
+                <Text style={styles.placeholderText}>No Image</Text>
+              </View>
             )}
           </TouchableOpacity>
         ))}
 
-        {/* Empty state */}
         {gridData.length === 0 && (
           <View style={{ paddingVertical: 24 }}>
-            <Text style={styles.subtext}>
+            <Text style={styles.emptyText}>
               {activeTab === "posts" ? "No posts yet." : "No saved posts yet."}
             </Text>
           </View>
@@ -260,179 +317,183 @@ export default function ProfileView({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { backgroundColor: "#fff" },
-  content: {
-    paddingBottom: 24,
-  },
+const stylesVars = {
+  bg: "#FAF7F0",
+  sand: "#D7C3A2",
+  sandSoft: "#EFE3CF",
+  sandText: "#C9B79B",
+  inkMuted: "#9CA3AF",
+  whiteGlass: "rgba(255,255,255,0.78)",
+};
 
-  headerRow: {
+const styles = StyleSheet.create({
+  container: { backgroundColor: stylesVars.bg },
+  content: { paddingHorizontal: 18, paddingBottom: 28 },
+
+  topBar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    paddingTop: 8,
+    paddingTop: 10,
     paddingBottom: 8,
   },
-  avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: "#eee",
-  },
-
-  username: { fontSize: 18, fontWeight: "700", marginBottom: 2 },
-  subtext: { fontSize: 12, color: "#666" },
-
-  regionRow: {
-    flexDirection: "row",
+  topSlot: { width: 36, height: 36 },
+  topIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.78)",
     alignItems: "center",
-    gap: 4,
-    marginTop: 4,
-    minWidth: 0,
+    justifyContent: "center",
   },
-  regionText: {
-    fontSize: 12,
-    color: "#6B7280",
-    fontWeight: "600",
-    flexShrink: 1,
+  handleText: {
+    flex: 1,
+    textAlign: "center",
+    color: stylesVars.sand,
+    fontWeight: "800",
+    letterSpacing: 0.2,
   },
 
-  editButton: {
-    alignSelf: "flex-start",
+  avatarWrap: { alignItems: "center", marginTop: 10 },
+  avatarRing: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: stylesVars.sandSoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatar: { width: 82, height: 82, borderRadius: 41, backgroundColor: "#eee" },
+
+  displayName: {
+    textAlign: "center",
+    fontSize: 22,
+    fontWeight: "900",
+    color: stylesVars.sand,
+    marginTop: 12,
+  },
+
+  locationRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 6,
+    paddingHorizontal: 10,
+  },
+  locationText: {
+    color: stylesVars.sand,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+    fontSize: 11,
+    textTransform: "uppercase",
+  },
+
+  bioText: {
+    textAlign: "center",
     marginTop: 10,
-    paddingVertical: 8,
+    color: stylesVars.sandText,
+    fontWeight: "600",
+    lineHeight: 18,
     paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
   },
-  editButtonText: { fontSize: 13, fontWeight: "600" },
-
-  section: { marginTop: 12, marginBottom: 6 },
-  sectionTitle: { fontSize: 14, fontWeight: "700", marginBottom: 6 },
-  bodyText: { fontSize: 14, lineHeight: 20, color: "#111" },
 
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-around",
     marginTop: 16,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: "#eee",
-    borderRadius: 12,
+    paddingVertical: 10,
   },
-  statItem: { alignItems: "center", minWidth: 60 },
-  statNumber: { fontSize: 16, fontWeight: "700" },
-  statLabel: { fontSize: 12, color: "#666", marginTop: 2 },
+  statItem: { alignItems: "center", minWidth: 90 },
+  statNumber: { fontSize: 18, fontWeight: "900", color: stylesVars.sand },
+  statLabel: {
+    marginTop: 6,
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#D1C1A4",
+    letterSpacing: 1.2,
+  },
 
-  tabBar: {
+  actionRow: {
     flexDirection: "row",
-    marginTop: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 14,
   },
-  tabItem: { flex: 1, paddingVertical: 10, alignItems: "center" },
-  tabItemActive: { borderBottomWidth: 2, borderBottomColor: "#111" },
-  tabText: { fontSize: 13, color: "#666", fontWeight: "600" },
-  tabTextActive: { color: "#111" },
-
-  postTile: {
+  primaryBtn: {
     flex: 1,
-    aspectRatio: 1,
-    borderRadius: 12,
-    overflow: "hidden",
-    backgroundColor: "#eee",
-  },
-  postImage: {
-    width: "100%",
-    height: "100%",
-  },
-  postPlaceholder: {
-    flex: 1,
-    backgroundColor: "#eee",
+    backgroundColor: stylesVars.sand,
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  placeholderText: { fontSize: 12, color: "#777" },
+  primaryBtnText: { color: "#fff", fontWeight: "900", fontSize: 14 },
+  primaryBtnGhost: {
+    backgroundColor: stylesVars.whiteGlass,
+    borderWidth: 1,
+    borderColor: "#E6D8C3",
+  },
+  primaryBtnGhostText: { color: stylesVars.sand },
+
+  iconBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: stylesVars.whiteGlass,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  tabs: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 16,
+    backgroundColor: stylesVars.whiteGlass,
+    borderRadius: 16,
+    padding: 8,
+  },
+  tabPill: {
+    flex: 1,
+    flexDirection: "row",
+    gap: 8,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabPillActive: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#F0E4D2",
+  },
+  tabText: { fontSize: 13, fontWeight: "800", color: stylesVars.inkMuted },
+  tabTextActive: { color: stylesVars.sand },
+
   grid: {
-    marginTop: 10,
-    padding: 10,
+    marginTop: 14,
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
   },
-  card: {
+  tile: {
     width: "48%",
-    marginBottom: 12,
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    aspectRatio: 1,
+    borderRadius: 16,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#eee",
-  },
-
-  imageWrap: {
-    position: "relative",
-  },
-
-  image: {
-    width: "100%",
-    height: 160,
-  },
-
-  placeholder: {
     backgroundColor: "#eee",
+    marginBottom: 14,
+  },
+  tileImg: { width: "100%", height: "100%" },
+  tilePlaceholder: {
+    backgroundColor: "#EEE6DA",
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
   },
+  placeholderText: { fontSize: 12, color: "#8B7C65", fontWeight: "700" },
 
-  caption: {
-    paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 10,
-    fontSize: 14,
-    color: "#444",
+  emptyText: {
+    textAlign: "center",
+    color: stylesVars.inkMuted,
     fontWeight: "700",
-    lineHeight: 18,
   },
-
-  locationPill: {
-    position: "absolute",
-    left: 8,
-    bottom: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    maxWidth: "75%",
-  },
-
-  locationPillText: {
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "600",
-    flexShrink: 1,
-  },
-  followButton: {
-    alignSelf: "flex-start",
-    marginTop: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-  },
-  followButtonFilled: {
-    backgroundColor: "#111",
-    borderColor: "#111",
-  },
-  followingButton: {
-    backgroundColor: "#fff",
-  },
-  followText: { fontSize: 13, fontWeight: "700" },
-  followTextFilled: { color: "#fff" },
-  followingText: { color: "#111" },
 });
