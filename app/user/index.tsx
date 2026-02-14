@@ -112,10 +112,11 @@ export default function UserScreen() {
       orderBy("createdAt", "desc"),
     );
 
-    const unsub = onSnapshot(q, (snap) => {
-      const data: PostPreview[] = [];
-      snap.forEach(
-        (d) => {
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const data: PostPreview[] = [];
+        snap.forEach((d) => {
           const p: any = d.data();
           data.push({
             id: d.id,
@@ -123,13 +124,13 @@ export default function UserScreen() {
             caption: p.caption ?? "",
             location: p?.postLocation?.country || "",
           });
-        },
-        (err: any) => {
-          console.log("[UserScreen] posts listener error:", err);
-        },
-      );
-      setPosts(data);
-    });
+        });
+        setPosts(data);
+      },
+      (err) => {
+        console.log("[UserScreen] posts listener error:", err);
+      },
+    );
 
     return () => unsub();
   }, [uid]);
@@ -158,9 +159,14 @@ export default function UserScreen() {
           tx.update(myUserRef, { followingCount: increment(-1) });
           tx.update(theirUserRef, { followerCount: increment(-1) });
         } else {
-          // follow
-          tx.set(myFollowingRef, { createdAt: serverTimestamp() });
-          tx.set(theirFollowersRef, { createdAt: serverTimestamp() });
+          // follow (ONLY store createdAt)
+          tx.set(myFollowingRef, {
+            createdAt: serverTimestamp(),
+          });
+
+          tx.set(theirFollowersRef, {
+            createdAt: serverTimestamp(),
+          });
 
           tx.update(myUserRef, { followingCount: increment(1) });
           tx.update(theirUserRef, { followerCount: increment(1) });
@@ -231,7 +237,7 @@ export default function UserScreen() {
         posts={posts} // posts only
         saved={[]}
         isMe={auth.currentUser?.uid === uid}
-        showFollowButton
+        showFollowButton={!isMe}
         isFollowing={isFollowing}
         onPressFollow={toggleFollow}
         onPressPost={(id) => router.push({ pathname: "/post", params: { id } })}

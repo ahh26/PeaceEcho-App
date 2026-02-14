@@ -131,7 +131,8 @@ export default function ProfileView({
                   ? styles.followingButton
                   : styles.followButtonFilled,
               ]}
-              onPress={onPressFollow}
+              onPress={onPressFollow ?? (() => {})}
+              disabled={!onPressFollow}
               activeOpacity={0.85}
             >
               <Text

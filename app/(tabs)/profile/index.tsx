@@ -1,5 +1,6 @@
 import ProfileView from "@/components/ProfileView";
 import { getUserProfile } from "@/lib/userProfile";
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 import {
@@ -12,7 +13,7 @@ import {
   where,
 } from "firebase/firestore";
 import React, { useEffect, useMemo, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db } from "../../../firebase";
 
@@ -47,7 +48,7 @@ type PostPreview = {
 
 export default function ProfileScreen() {
   const user = auth.currentUser;
-  const admin_uid = "rL8PtYcFIIV5A8DP3YiSLxng4A92"; //can change the uid for admin later here
+  const admin_uid = "e0li8PdRZYO9ZUtmBmJLcSRi4WE2"; //can change the uid for admin later here
   const isAdmin = user?.uid === admin_uid;
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -228,6 +229,21 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "flex-end",
+          paddingTop: 6,
+        }}
+      >
+        <TouchableOpacity
+          onPress={() => router.push("/settings")}
+          style={{ padding: 6 }}
+        >
+          <Ionicons name="settings-outline" size={22} color="#111" />
+        </TouchableOpacity>
+      </View>
+
       <ProfileView
         profile={{
           username: profile?.username ?? "Unnamed",

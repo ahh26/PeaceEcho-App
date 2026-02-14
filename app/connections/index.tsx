@@ -1,26 +1,45 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  orderBy,
+  query,
+} from "firebase/firestore";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { db } from "../../firebase";
 
 type ConnectionItem = {
   id: string;
+  createdAt?: any;
   username?: string;
   photoURL?: string;
   region?: string;
-  createdAt?: any;
 };
+
+async function fetchUser(uid: string) {
+  const snap = await getDoc(doc(db, "users", uid));
+  if (!snap.exists()) return null;
+
+  const u: any = snap.data();
+  return {
+    username: u.username ?? "User",
+    photoURL: u.photoURL ?? u.profilePic ?? "", // keep both to be safe
+    region: u.region?.country ?? u.country ?? "",
+  };
+}
 
 export default function UserConnectionsScreen() {
   const params = useLocalSearchParams<{
@@ -36,7 +55,7 @@ export default function UserConnectionsScreen() {
   }, [params.tab]);
 
   const [activeTab, setActiveTab] = useState<"followers" | "following">(
-    initialTab
+    initialTab,
   );
   const [search, setSearch] = useState("");
 
@@ -44,9 +63,16 @@ export default function UserConnectionsScreen() {
   const [following, setFollowing] = useState<ConnectionItem[]>([]);
   const [loadingFollowers, setLoadingFollowers] = useState(true);
   const [loadingFollowing, setLoadingFollowing] = useState(true);
+  const [followersUsers, setFollowersUsers] = useState<Record<string, any>>({});
+  const [followingUsers, setFollowingUsers] = useState<Record<string, any>>({});
 
   useEffect(() => setActiveTab(initialTab), [initialTab]);
   useEffect(() => setSearch(""), [activeTab]);
+
+  useEffect(() => {
+    setFollowersUsers({});
+    setFollowingUsers({});
+  }, [targetUid]);
 
   // Followers
   useEffect(() => {
@@ -59,8 +85,10 @@ export default function UserConnectionsScreen() {
     const unsub = onSnapshot(
       q,
       (snap) => {
-        const data: ConnectionItem[] = [];
-        snap.forEach((d) => data.push({ id: d.id, ...(d.data() as any) }));
+        const data: ConnectionItem[] = snap.docs.map((d) => ({
+          id: d.id,
+          createdAt: (d.data() as any)?.createdAt,
+        }));
         setFollowers(data);
         setLoadingFollowers(false);
       },
@@ -68,11 +96,27 @@ export default function UserConnectionsScreen() {
         console.log("Followers snapshot error:", err);
         setFollowers([]);
         setLoadingFollowers(false);
-      }
+      },
     );
 
     return () => unsub();
   }, [targetUid]);
+
+  useEffect(() => {
+    if (activeTab !== "followers") return;
+
+    const unsubs: (() => void)[] = [];
+    followers.forEach((f) => {
+      const uref = doc(db, "users", f.id);
+      const unsub = onSnapshot(uref, (snap) => {
+        if (!snap.exists()) return;
+        setFollowersUsers((prev) => ({ ...prev, [f.id]: snap.data() }));
+      });
+      unsubs.push(unsub);
+    });
+
+    return () => unsubs.forEach((fn) => fn());
+  }, [activeTab, followers.map((x) => x.id).join("|")]);
 
   // Following
   useEffect(() => {
@@ -85,8 +129,10 @@ export default function UserConnectionsScreen() {
     const unsub = onSnapshot(
       q,
       (snap) => {
-        const data: ConnectionItem[] = [];
-        snap.forEach((d) => data.push({ id: d.id, ...(d.data() as any) }));
+        const data: ConnectionItem[] = snap.docs.map((d) => ({
+          id: d.id,
+          createdAt: (d.data() as any)?.createdAt,
+        }));
         setFollowing(data);
         setLoadingFollowing(false);
       },
@@ -94,13 +140,43 @@ export default function UserConnectionsScreen() {
         console.log("Following snapshot error:", err);
         setFollowing([]);
         setLoadingFollowing(false);
-      }
+      },
     );
 
     return () => unsub();
   }, [targetUid]);
 
-  const rawData = activeTab === "followers" ? followers : following;
+  useEffect(() => {
+    if (activeTab !== "following") return;
+
+    const unsubs: (() => void)[] = [];
+    following.forEach((f) => {
+      const uref = doc(db, "users", f.id);
+      const unsub = onSnapshot(uref, (snap) => {
+        if (!snap.exists()) return;
+        setFollowingUsers((prev) => ({ ...prev, [f.id]: snap.data() }));
+      });
+      unsubs.push(unsub);
+    });
+
+    return () => unsubs.forEach((fn) => fn());
+  }, [activeTab, following.map((x) => x.id).join("|")]);
+
+  const rawData = (activeTab === "followers" ? followers : following).map(
+    (item) => {
+      const u =
+        activeTab === "followers"
+          ? followersUsers[item.id]
+          : followingUsers[item.id];
+
+      return {
+        ...item,
+        username: u?.username ?? "User",
+        photoURL: u?.photoURL ?? u?.profilePic ?? "",
+        region: u?.region?.country ?? u?.country ?? "",
+      };
+    },
+  );
   const loading =
     activeTab === "followers" ? loadingFollowers : loadingFollowing;
 
@@ -200,30 +276,29 @@ export default function UserConnectionsScreen() {
         }
         renderItem={({ item }) => (
           <View style={styles.row}>
-            <Image
-              source={
-                item.photoURL
-                  ? { uri: item.photoURL }
-                  : { uri: "https://via.placeholder.com/80" }
-              }
-              style={styles.avatar}
-            />
-
-            <View style={{ flex: 1 }}>
-              <Text style={styles.rowTitle}>{item.username || "User"}</Text>
-            </View>
-
             {/* View their profile */}
             <TouchableOpacity
-              style={styles.actionBtn}
+              style={styles.profileTouch}
+              activeOpacity={0.7}
               onPress={() =>
                 router.push({
                   pathname: "/user",
-                  params: { uid: item.id },
+                  params: { uid: item.id, username: item.username ?? "User" },
                 })
               }
             >
-              <Text style={styles.actionText}>View</Text>
+              <Image
+                source={
+                  item.photoURL
+                    ? { uri: item.photoURL }
+                    : { uri: "https://via.placeholder.com/80" }
+                }
+                style={styles.avatar}
+              />
+
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>{item.username || "User"}</Text>
+              </View>
             </TouchableOpacity>
           </View>
         )}
@@ -307,4 +382,10 @@ const styles = StyleSheet.create({
   actionText: { fontSize: 12, fontWeight: "600" },
 
   emptyText: { fontSize: 12, color: "#666" },
+  profileTouch: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: 12,
+  },
 });

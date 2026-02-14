@@ -5,15 +5,15 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { Audio, type AVPlaybackStatus } from "expo-av";
@@ -39,7 +39,7 @@ export default function UploadAudiobookAdmin() {
 
   // paste admin UID here
   const admin_uids = useMemo(
-    () => new Set<string>(["rL8PtYcFIIV5A8DP3YiSLxng4A92"]),
+    () => new Set<string>(["e0li8PdRZYO9ZUtmBmJLcSRi4WE2"]),
     [],
   );
 

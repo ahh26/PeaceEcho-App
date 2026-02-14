@@ -8,7 +8,7 @@ import {
   orderBy,
   query,
   runTransaction,
-  serverTimestamp,
+  serverTimestamp
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
@@ -30,9 +30,9 @@ import { auth, db } from "../firebase";
 
 type CommentUI = {
   id: string;
-  username: string;
+  uid: string;
   text: string;
-  createdAtLabel?: string;
+  createdAt?: any;
 };
 
 function formatPostTime(createdAt: any) {
@@ -63,6 +63,69 @@ function formatPostTime(createdAt: any) {
     month: "short",
     day: "numeric",
   });
+}
+
+function CommentRow({
+  uid,
+  text,
+  createdAt,
+  onPressUser,
+}: {
+  uid: string;
+  text: string;
+  createdAt?: any;
+  onPressUser: () => void;
+}) {
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    if (!uid) return;
+    const ref = doc(db, "users", uid);
+    const unsub = onSnapshot(ref, (snap) => {
+      setUser(snap.exists() ? snap.data() : null);
+    });
+    return unsub;
+  }, [uid]);
+
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: "#f2f2f2",
+        gap: 10,
+      }}
+    >
+      <TouchableOpacity activeOpacity={0.7} onPress={onPressUser}>
+        <Image
+          source={
+            user?.photoURL
+              ? { uri: user.photoURL }
+              : { uri: "https://via.placeholder.com/80" }
+          }
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            backgroundColor: "#eee",
+          }}
+        />
+      </TouchableOpacity>
+
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontWeight: "800" }}>
+          {user?.username ?? "User"}{" "}
+          <Text style={{ fontWeight: "400", color: "#666" }}>
+            {createdAt ? `· ${formatPostTime(createdAt)}` : ""}
+          </Text>
+        </Text>
+
+        <Text style={{ marginTop: 4, lineHeight: 18 }}>{text}</Text>
+      </View>
+    </View>
+  );
 }
 
 export default function PostDetail() {
@@ -125,7 +188,7 @@ export default function PostDetail() {
         const data = d.data() as any;
         return {
           id: d.id,
-          username: data.username ?? "User",
+          uid: data.uid,
           text: data.text ?? "",
           createdAtLabel: formatPostTime(data.createdAt),
         };
@@ -299,14 +362,13 @@ export default function PostDetail() {
     const postRef = doc(db, "posts", String(id));
     const commentsRef = collection(db, "posts", String(id), "comments");
 
-    try {
-      setCommentText("");
+    setCommentText("");
 
+    try {
       await runTransaction(db, async (tx) => {
         const newCommentRef = doc(commentsRef);
         tx.set(newCommentRef, {
           uid: user.uid,
-          username: auth.currentUser?.displayName ?? "User", // can replace with profile username later
           text,
           createdAt: serverTimestamp(),
         });
@@ -464,22 +526,18 @@ export default function PostDetail() {
           ) : (
             <View style={{ marginTop: 12 }}>
               {comments.map((c) => (
-                <View
+                <CommentRow
                   key={c.id}
-                  style={{
-                    paddingVertical: 10,
-                    borderBottomWidth: 1,
-                    borderBottomColor: "#f2f2f2",
-                  }}
-                >
-                  <Text style={{ fontWeight: "800" }}>
-                    {c.username}{" "}
-                    <Text style={{ fontWeight: "400", color: "#666" }}>
-                      {c.createdAtLabel ? `· ${c.createdAtLabel}` : ""}
-                    </Text>
-                  </Text>
-                  <Text style={{ marginTop: 4, lineHeight: 18 }}>{c.text}</Text>
-                </View>
+                  uid={c.uid}
+                  text={c.text}
+                  createdAt={c.createdAt}
+                  onPressUser={() =>
+                    router.push({
+                      pathname: "/user",
+                      params: { uid: c.uid },
+                    })
+                  }
+                />
               ))}
             </View>
           )}
