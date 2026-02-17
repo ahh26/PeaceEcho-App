@@ -25,7 +25,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.PeaceEcho"
+      "package": "com.anonymous.PeaceEcho",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "output": "static",

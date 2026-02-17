@@ -8,13 +8,18 @@ import {
   orderBy,
   query,
   runTransaction,
-  serverTimestamp
+  serverTimestamp,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Dimensions,
+  FlatList,
   Image,
+  Keyboard,
+  Platform,
   ScrollView,
   Share,
   Text,
@@ -26,7 +31,9 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { COLORS } from "../constants/colors";
 import { auth, db } from "../firebase";
+import { reflection_categories } from "../lib/reflectionCategories";
 
 type CommentUI = {
   id: string;
@@ -128,6 +135,87 @@ function CommentRow({
   );
 }
 
+const { width: SCREEN_W } = Dimensions.get("window");
+
+function CategoryChip({ label }: { label: string }) {
+  if (!label) return null;
+  return (
+    <View
+      style={{
+        alignSelf: "flex-start",
+        backgroundColor: "#EEF2FF",
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        marginTop: 6,
+      }}
+    >
+      <Text style={{ fontSize: 12, fontWeight: "900", color: "#111827" }}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function ImageCarousel({ imageUrls }: { imageUrls?: string[] }) {
+  const imgs = Array.isArray(imageUrls) ? imageUrls.filter(Boolean) : [];
+  const [index, setIndex] = useState(0);
+
+  if (imgs.length === 0) return null;
+
+  return (
+    <View style={{ marginTop: 6 }}>
+      <FlatList
+        data={imgs}
+        keyExtractor={(u, i) => `${u}-${i}`}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={(e) => {
+          const x = e.nativeEvent.contentOffset.x;
+          const i = Math.round(x / (SCREEN_W - 40));
+          setIndex(i);
+        }}
+        renderItem={({ item }) => (
+          <Image
+            source={{ uri: item }}
+            style={{
+              width: SCREEN_W - 40,
+              height: 320,
+              borderRadius: 12,
+              backgroundColor: "#eee",
+            }}
+          />
+        )}
+      />
+
+      {/* Dots */}
+      {imgs.length > 1 && (
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            gap: 6,
+            marginTop: 10,
+          }}
+        >
+          {imgs.map((_, i) => (
+            <View
+              key={i}
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: i === index ? "#111" : "#D1D5DB",
+              }}
+            />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
 export default function PostDetail() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const [post, setPost] = useState<any>(null);
@@ -139,6 +227,40 @@ export default function PostDetail() {
   const [saved, setSaved] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState<CommentUI[]>([]);
+
+  const kb = useState(() => new Animated.Value(0))[0];
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const showEvt =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvt =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvt, (e) => {
+      const h = e.endCoordinates?.height ?? 0;
+      setKeyboardOpen(true);
+
+      Animated.timing(kb, {
+        toValue: h,
+        duration: Platform.OS === "ios" ? (e.duration ?? 250) : 120,
+        useNativeDriver: true,
+      }).start();
+    });
+
+    const hideSub = Keyboard.addListener(hideEvt, (e) => {
+      Animated.timing(kb, {
+        toValue: 0,
+        duration: Platform.OS === "ios" ? (e.duration ?? 250) : 120,
+        useNativeDriver: true,
+      }).start(() => setKeyboardOpen(false));
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [kb]);
 
   useEffect(() => {
     if (!id) return;
@@ -216,6 +338,15 @@ export default function PostDetail() {
         .filter(Boolean)
         .join(", ")
     : "";
+
+  const categoryId = String(post?.reflectionCategory ?? "");
+  const categoryMeta = reflection_categories.find((c) => c.id === categoryId);
+
+  const categoryLabel = categoryMeta
+    ? `${categoryMeta.emoji} ${categoryMeta.label}`
+    : categoryId
+      ? `🌱 ${categoryId}` // fallback if older posts use raw string
+      : "";
 
   //delete option if it's account owner's post
   const isOwner = auth.currentUser?.uid && post?.uid === auth.currentUser.uid;
@@ -383,13 +514,17 @@ export default function PostDetail() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+    <SafeAreaView
+      edges={["top", "left", "right"]}
+      style={{ flex: 1, backgroundColor: COLORS.background }}
+    >
       <View style={{ flex: 1 }}>
         <ScrollView
+          keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             paddingHorizontal: 20,
             paddingTop: 8,
-            paddingBottom: 110 + insets.bottom, // leave room for sticky bar
+            paddingBottom: 110 + insets.bottom,
           }}
         >
           {/* Top header */}
@@ -459,16 +594,11 @@ export default function PostDetail() {
             </View>
           </View>
 
-          {/* Post image */}
-          <Image
-            source={{ uri: post.imageUrls?.[0] }}
-            style={{
-              width: "100%",
-              height: 320,
-              borderRadius: 12,
-              backgroundColor: "#eee",
-            }}
-          />
+          {/* Reflection Category */}
+          <CategoryChip label={categoryLabel} />
+
+          {/* Post images carousel */}
+          <ImageCarousel imageUrls={post.imageUrls} />
 
           {/* Caption */}
           {!!post.caption && (
@@ -544,18 +674,19 @@ export default function PostDetail() {
         </ScrollView>
 
         {/* Sticky Bottom Bar */}
-        <View
+        <Animated.View
           style={{
             position: "absolute",
             left: 0,
             right: 0,
             bottom: 0,
+            transform: [{ translateY: Animated.multiply(kb, -1) }],
             backgroundColor: "#fff",
             borderTopWidth: 1,
             borderTopColor: "#eee",
             paddingHorizontal: 12,
             paddingTop: 6,
-            paddingBottom: 6 + insets.bottom,
+            paddingBottom: 6 + (keyboardOpen ? 0 : insets.bottom),
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -573,7 +704,7 @@ export default function PostDetail() {
               }}
             >
               <TextInput
-                placeholder="Write a comment..."
+                placeholder="Share a thoughtful response 🌱..."
                 value={commentText}
                 onChangeText={setCommentText}
                 style={{ flex: 1, fontSize: 14 }}
@@ -633,7 +764,7 @@ export default function PostDetail() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </Animated.View>
       </View>
     </SafeAreaView>
   );

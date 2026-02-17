@@ -25,6 +25,7 @@ import {
 import CountryPicker from "react-native-country-picker-modal";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db, storage } from "../../../firebase";
+import { reflection_categories } from "../../../lib/reflectionCategories";
 import { getUserProfile } from "../../../lib/userProfile";
 
 async function uriToBlob(uri: string): Promise<Blob> {
@@ -149,6 +150,21 @@ const ps = StyleSheet.create({
 // ---------- Screen ----------
 export default function EditPostScreen() {
   const params = useLocalSearchParams();
+  const initialCategory =
+    typeof params.reflectionCategory === "string"
+      ? params.reflectionCategory
+      : Array.isArray(params.reflectionCategory)
+        ? params.reflectionCategory[0]
+        : "";
+
+  const [reflectionCategory, setReflectionCategory] = useState(
+    initialCategory || (reflection_categories[0]?.id ?? "growth"),
+  );
+
+  const categoryMeta =
+    reflection_categories.find((c) => c.id === reflectionCategory) ||
+    reflection_categories[0];
+
   const [userProfile, setUserProfile] = useState<any>(null);
 
   const [images, setImages] = useState<string[]>([]);
@@ -161,6 +177,7 @@ export default function EditPostScreen() {
   const [countryVisible, setCountryVisible] = useState(false);
   const [stateVisible, setStateVisible] = useState(false);
   const [stateSearch, setStateSearch] = useState("");
+  const [categoryVisible, setCategoryVisible] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -291,6 +308,7 @@ export default function EditPostScreen() {
         username: userProfile?.username || "Anonymous",
         displayName: userProfile?.displayName,
         userPhotoURL: userProfile?.photoURL || null,
+        reflectionCategory: reflectionCategory || "growth",
         ...(hasPostLocation ? { postLocation } : {}),
       });
 
@@ -332,7 +350,7 @@ export default function EditPostScreen() {
           </Text>
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>New Post</Text>
+        <Text style={styles.headerTitle}>{reflectionCategory}</Text>
 
         <TouchableOpacity
           onPress={handlePost}
@@ -352,6 +370,83 @@ export default function EditPostScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+        {/* Reflection Category card */}
+        <View style={styles.card}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Text style={styles.cardTitle}>Reflection Category</Text>
+
+            <TouchableOpacity
+              disabled={busy}
+              onPress={() => setCategoryVisible(true)}
+            >
+              <Text
+                style={{
+                  fontWeight: "900",
+                  color: "#2563EB",
+                  opacity: busy ? 0.5 : 1,
+                }}
+              >
+                Change
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.categoryPill}>
+            <Text style={styles.categoryPillText}>
+              {categoryMeta?.emoji} {categoryMeta?.label}
+            </Text>
+          </View>
+
+          <Text style={styles.categoryHint}>
+            This helps people discover peace-related stories.
+          </Text>
+        </View>
+
+        {/* Category Modal */}
+        <Modal visible={categoryVisible} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Choose a category</Text>
+                <TouchableOpacity onPress={() => setCategoryVisible(false)}>
+                  <Text style={styles.modalClose}>Close</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {reflection_categories.map((c) => {
+                  const selected = c.id === reflectionCategory;
+                  return (
+                    <TouchableOpacity
+                      key={c.id}
+                      style={[
+                        styles.categoryItem,
+                        selected && styles.categoryItemSelected,
+                      ]}
+                      onPress={() => {
+                        setReflectionCategory(c.id);
+                        setCategoryVisible(false);
+                      }}
+                      disabled={busy}
+                    >
+                      <Text style={styles.categoryItemText}>
+                        {c.emoji} {c.label}
+                      </Text>
+                      {selected && <Text style={styles.categoryCheck}>✓</Text>}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
         {/* Photos card */}
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
@@ -380,7 +475,7 @@ export default function EditPostScreen() {
           <Text style={styles.cardTitle}>Caption</Text>
           <TextInput
             style={styles.captionInput}
-            placeholder="Write a caption…"
+            placeholder="Share a story / reflection that builds understanding..."
             placeholderTextColor="#9CA3AF"
             multiline
             value={caption}
@@ -389,7 +484,7 @@ export default function EditPostScreen() {
           />
         </View>
 
-        {/*Locaation selector */}
+        {/*Location selector */}
         <View style={styles.card}>
           <View
             style={{ flexDirection: "row", justifyContent: "space-between" }}
@@ -779,4 +874,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalClearStateText: { fontWeight: "900", color: "#111827" },
+  categoryPill: {
+    alignSelf: "flex-start",
+    backgroundColor: "#EEF2FF",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    marginTop: 10,
+  },
+  categoryPillText: { fontSize: 13, fontWeight: "900", color: "#111827" },
+  categoryHint: {
+    marginTop: 10,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#6B7280",
+  },
+
+  categoryItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  categoryItemSelected: {
+    borderColor: "#2563EB",
+    backgroundColor: "#EFF6FF",
+  },
+  categoryItemText: { fontSize: 14, fontWeight: "900", color: "#111827" },
+  categoryCheck: { fontSize: 16, fontWeight: "900", color: "#2563EB" },
 });

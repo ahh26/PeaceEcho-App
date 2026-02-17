@@ -1,9 +1,9 @@
-import { router, Tabs } from 'expo-router';
-import React from 'react';
+import { router, Tabs } from "expo-router";
+import React from "react";
 
-import { HapticTab } from '@/components/haptic-tab';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { HapticTab } from "@/components/haptic-tab";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function TabLayout() {
@@ -12,12 +12,13 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
         headerShown: false,
         tabBarButton: HapticTab,
-      }}>
+      }}
+    >
       <Tabs.Screen
-        name='discover'
+        name="discover"
         options={{
           title: "Discover",
           tabBarIcon: ({ color, size }) => (
@@ -27,9 +28,9 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name='audiobook'
+        name="audiobook"
         options={{
-          title: "AudioBook",
+          title: "Voices",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="headset-outline" size={size} color={color} />
           ),
@@ -37,17 +38,17 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name='create'
+        name="create"
         options={{
           title: "Create",
-          tabBarButton: (props) =>(
+          tabBarButton: (props) => (
             <HapticTab
               {...props}
               onPress={() => {
-                router.push("/(tabs)/create/pick"); 
+                router.push("/(tabs)/create/category");
               }}
             />
-    ),
+          ),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="add-circle-outline" size={size} color={color} />
           ),
@@ -55,7 +56,7 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name='donations'
+        name="donations"
         options={{
           title: "Donations",
           tabBarIcon: ({ color, size }) => (
@@ -72,11 +73,11 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: "Profile",
-          tabBarButton: (props) =>(
+          tabBarButton: (props) => (
             <HapticTab
               {...props}
               onPress={() => {
-                router.push("/(tabs)/profile"); 
+                router.push("/(tabs)/profile");
               }}
             />
           ),
@@ -85,8 +86,6 @@ export default function TabLayout() {
           ),
         }}
       />
-
-      
     </Tabs>
   );
 }
