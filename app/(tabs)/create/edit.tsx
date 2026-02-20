@@ -150,7 +150,8 @@ const ps = StyleSheet.create({
 // ---------- Screen ----------
 export default function EditPostScreen() {
   const params = useLocalSearchParams();
-  const initialCategory =
+
+  const paramCategory =
     typeof params.reflectionCategory === "string"
       ? params.reflectionCategory
       : Array.isArray(params.reflectionCategory)
@@ -158,11 +159,24 @@ export default function EditPostScreen() {
         : "";
 
   const [reflectionCategory, setReflectionCategory] = useState(
-    initialCategory || (reflection_categories[0]?.id ?? "growth"),
+    reflection_categories[0]?.id ?? "growth",
   );
 
+  // whether user changed category in this screen
+  const [categoryOverridden, setCategoryOverridden] = useState(false);
+
+  useEffect(() => {
+    if (!categoryOverridden && paramCategory) {
+      setReflectionCategory(paramCategory);
+    }
+  }, [paramCategory, categoryOverridden]);
+
+  const activeCategoryId = categoryOverridden
+    ? reflectionCategory
+    : paramCategory || reflectionCategory;
+
   const categoryMeta =
-    reflection_categories.find((c) => c.id === reflectionCategory) ||
+    reflection_categories.find((c) => c.id === activeCategoryId) ||
     reflection_categories[0];
 
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -258,7 +272,7 @@ export default function EditPostScreen() {
   };
 
   const cancelEditing = () => {
-    router.back();
+    router.push("/discover");
   };
 
   const handlePost = async () => {
@@ -308,7 +322,7 @@ export default function EditPostScreen() {
         username: userProfile?.username || "Anonymous",
         displayName: userProfile?.displayName,
         userPhotoURL: userProfile?.photoURL || null,
-        reflectionCategory: reflectionCategory || "growth",
+        reflectionCategory: activeCategoryId || "growth",
         ...(hasPostLocation ? { postLocation } : {}),
       });
 
@@ -350,7 +364,7 @@ export default function EditPostScreen() {
           </Text>
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>{reflectionCategory}</Text>
+        <Text style={styles.headerTitle}> Create </Text>
 
         <TouchableOpacity
           onPress={handlePost}
@@ -379,7 +393,7 @@ export default function EditPostScreen() {
               alignItems: "center",
             }}
           >
-            <Text style={styles.cardTitle}>Reflection Category</Text>
+            <Text style={styles.cardTitle}>Category</Text>
 
             <TouchableOpacity
               disabled={busy}
@@ -431,6 +445,7 @@ export default function EditPostScreen() {
                       ]}
                       onPress={() => {
                         setReflectionCategory(c.id);
+                        setCategoryOverridden(true);
                         setCategoryVisible(false);
                       }}
                       disabled={busy}

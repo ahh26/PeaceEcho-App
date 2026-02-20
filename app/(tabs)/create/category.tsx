@@ -18,7 +18,7 @@ export default function CreateCategory() {
             style={styles.item}
             onPress={() => {
               router.push({
-                pathname: "/(tabs)/create/pick",
+                pathname: "/create/pick",
                 params: { reflectionCategory: c.id },
               });
             }}
@@ -29,7 +29,7 @@ export default function CreateCategory() {
         ))}
       </View>
 
-      <TouchableOpacity onPress={() => router.back()}>
+      <TouchableOpacity onPress={() => router.push("/discover")}>
         <Text style={styles.cancel}>Cancel</Text>
       </TouchableOpacity>
     </SafeAreaView>

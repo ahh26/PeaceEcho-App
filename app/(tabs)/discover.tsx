@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   Image,
   ScrollView,
   StyleSheet,
@@ -17,27 +18,168 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { db } from "../../firebase";
+import { reflection_categories } from "../../lib/reflectionCategories";
+
+type CategoryId = string;
+
+const THEME = {
+  bg: "#F6F7F3",
+  card: "#FFFFFF",
+  border: "#E6E9E3",
+  text: "#1F2A24",
+  muted: "#7C877F",
+  subtle: "#9CA3AF",
+  sage: "#6F8B77", // selected chip + accents
+  sageSoft: "#E7EFE9", // light sage backgrounds
+  shadow: "rgba(17, 24, 39, 0.08)",
+};
+
+function CategoryChip({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.85}
+      style={[
+        styles.chip,
+        selected ? styles.chipSelected : styles.chipUnselected,
+      ]}
+    >
+      <Text
+        style={[
+          styles.chipText,
+          selected ? styles.chipTextSelected : styles.chipTextUnselected,
+        ]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
 
 export default function DiscoverScreen() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<CategoryId>("all");
+
+  const [headerH, setHeaderH] = useState(0);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
-      const data: any[] = [];
-      snap.forEach((doc) => {
-        data.push({ id: doc.id, ...doc.data() });
-      });
-
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setPosts(data);
       setLoading(false);
     });
 
     return () => unsub();
   }, []);
+
+  const filteredPosts = useMemo(() => {
+    const s = search.trim().toLowerCase();
+
+    return posts.filter((p) => {
+      const okSearch =
+        !s ||
+        String(p.caption ?? "")
+          .toLowerCase()
+          .includes(s);
+      const okCategory =
+        selectedCategory === "all" ||
+        String(p.reflectionCategory ?? "") === selectedCategory;
+
+      return okSearch && okCategory;
+    });
+  }, [posts, search, selectedCategory]);
+
+  const renderItem = ({ item: post }: { item: any }) => {
+    const locationText = post?.postLocation?.country || "";
+
+    const categoryId = String(post?.reflectionCategory ?? "");
+    const categoryMeta = reflection_categories.find((c) => c.id === categoryId);
+    const categoryLabel = categoryMeta
+      ? `${categoryMeta.emoji} ${categoryMeta.label}`
+      : categoryId
+        ? `🌱 ${categoryId}`
+        : "";
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.9}
+        onPress={() =>
+          router.push({ pathname: "/post", params: { id: post.id } })
+        }
+      >
+        {/* Image */}
+        <View style={styles.imageWrap}>
+          {post.imageUrls?.[0] ? (
+            <Image source={{ uri: post.imageUrls[0] }} style={styles.image} />
+          ) : (
+            <View style={[styles.image, styles.placeholder]}>
+              <Text>No Image</Text>
+            </View>
+          )}
+
+          {!!locationText && (
+            <View style={styles.locationPill}>
+              <Ionicons name="location-outline" size={12} color="#fff" />
+              <Text style={styles.locationPillText} numberOfLines={1}>
+                {locationText}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Category Chip */}
+        {!!categoryLabel && (
+          <View style={styles.categoryPill}>
+            <Text style={styles.categoryText} numberOfLines={1}>
+              {categoryLabel}
+            </Text>
+          </View>
+        )}
+
+        {/* Caption Preview */}
+        <Text style={styles.caption} numberOfLines={3}>
+          {post.caption || ""}
+        </Text>
+
+        {/* User + Likes Row */}
+        <View style={styles.infoRow}>
+          <View style={styles.userMini}>
+            <Image
+              source={
+                post.userPhotoURL
+                  ? { uri: post.userPhotoURL }
+                  : { uri: "https://via.placeholder.com/30" }
+              }
+              style={styles.avatarMini}
+            />
+            <Text style={styles.usernameMini} numberOfLines={1}>
+              {post.username || "Anonymous"}
+            </Text>
+          </View>
+
+          <View style={styles.likesRow}>
+            <Ionicons name="heart-outline" size={16} color="#6B7280" />
+            <Text style={styles.likesText}>{post.likeCount ?? 0}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
@@ -47,258 +189,262 @@ export default function DiscoverScreen() {
     );
   }
 
-  //simple "search by caption"->improve the algorithm later
-  const filteredPosts = posts.filter((post) =>
-    (post.caption || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const headerTopPad = insets.top;
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      {/* Fixed Search Bar */}
-      <View style={[styles.searchWrapper, { paddingTop: insets.top }]}>
-        <TextInput
-          placeholder="Search..."
-          style={styles.searchInput}
-          value={search}
-          onChangeText={setSearch}
-        />
-      </View>
-      <ScrollView
-        contentContainerStyle={{
-          paddingBottom: 30,
-          paddingTop: insets.top + 5, // << move content under search bar
-        }}
+    <SafeAreaView
+      edges={["left", "right", "bottom"]}
+      style={{ flex: 1, backgroundColor: THEME.bg }}
+    >
+      {/* Fixed header (search + category row) */}
+      <View
+        style={[styles.header, { paddingTop: insets.top + 6 }]}
+        onLayout={(e) => setHeaderH(e.nativeEvent.layout.height)}
       >
-        {/* Post grid */}
-        <View style={styles.grid}>
-          {filteredPosts.map((post, index) => {
-            // const locationText = post?.postLocation
-            //   ? [
-            //       post.postLocation.city,
-            //       post.postLocation.stateName,
-            //       post.postLocation.country,
-            //     ]
-            //       .filter(Boolean)
-            //       .join(", ")
-            //   : "";
+        <View style={styles.searchBar}>
+          <TextInput
+            placeholder="Search key words..."
+            style={styles.searchInput}
+            value={search}
+            onChangeText={setSearch}
+            returnKeyType="search"
+            placeholderTextColor={THEME.subtle}
+          />
 
-            const locationText = post?.postLocation?.country || "";
-
-            const isStaggered = index >= 2 && index % 2 === 1;
-            return (
-              <TouchableOpacity
-                key={post.id}
-                style={styles.card}
-                onPress={() =>
-                  router.push({ pathname: "/post", params: { id: post.id } })
-                }
-              >
-                {/* Image */}
-                <View style={styles.imageWrap}>
-                  {post.imageUrls?.[0] ? (
-                    <Image
-                      source={{ uri: post.imageUrls[0] }}
-                      style={styles.image}
-                    />
-                  ) : (
-                    <View style={[styles.image, styles.placeholder]}>
-                      <Text>No Image</Text>
-                    </View>
-                  )}
-
-                  {!!locationText && (
-                    <View style={styles.locationPill}>
-                      <Ionicons
-                        name="location-outline"
-                        size={12}
-                        color="#fff"
-                      />
-                      <Text style={styles.locationPillText} numberOfLines={1}>
-                        {locationText}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Caption Preview */}
-                <Text style={styles.caption} numberOfLines={3}>
-                  {post.caption || ""}
-                </Text>
-
-                {/* User + Likes Row */}
-                <View style={styles.infoRow}>
-                  <View style={styles.userMini}>
-                    <Image
-                      source={
-                        post.userPhotoURL
-                          ? { uri: post.userPhotoURL }
-                          : { uri: "https://via.placeholder.com/30" }
-                      }
-                      style={styles.avatarMini}
-                    />
-                    <Text style={styles.usernameMini} numberOfLines={1}>
-                      {post.username || "Anonymous"}
-                    </Text>
-                  </View>
-
-                  <View style={styles.likesRow}>
-                    <Ionicons
-                      name={post.isLiked ? "heart" : "heart-outline"}
-                      size={16}
-                      color="#6B7280"
-                    />
-                    <Text style={styles.likesText}>{post.likeCount ?? 0}</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+          {!!search && (
+            <TouchableOpacity
+              onPress={() => setSearch("")}
+              style={styles.clearBtn}
+            >
+              <Ionicons name="close-circle" size={18} color={THEME.subtle} />
+            </TouchableOpacity>
+          )}
         </View>
-      </ScrollView>
+
+        <View style={{ height: 6 }} />
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+        >
+          <CategoryChip
+            label="All"
+            selected={selectedCategory === "all"}
+            onPress={() => setSelectedCategory("all")}
+          />
+
+          {reflection_categories.map((c) => (
+            <CategoryChip
+              key={c.id}
+              label={`${c.emoji} ${c.label}`}
+              selected={selectedCategory === c.id}
+              onPress={() => setSelectedCategory(c.id)}
+            />
+          ))}
+        </ScrollView>
+      </View>
+
+      <FlatList
+        data={filteredPosts}
+        keyExtractor={(p) => String(p.id)}
+        renderItem={renderItem}
+        numColumns={2}
+        columnWrapperStyle={{ justifyContent: "space-between" }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingTop: headerH,
+          paddingHorizontal: 15,
+          paddingBottom: 20 + insets.bottom,
+        }}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>
+            No posts match your search/filter.
+          </Text>
+        }
+        style={{ marginTop: 8 }}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  searchWrapper: {
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  header: {
     position: "absolute",
-    top: 0,
     left: 0,
     right: 0,
+    top: 0,
     zIndex: 10,
-    backgroundColor: "white",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
+    backgroundColor: THEME.bg,
     borderBottomWidth: 1,
-    borderColor: "#ddd",
+    borderColor: THEME.border,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
+
+  searchBar: {
+    height: 44,
+    justifyContent: "center",
+    position: "relative",
+  },
+
   searchInput: {
-    backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: THEME.card,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingRight: 36,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#ddd",
-    fontSize: 16,
+    borderColor: THEME.border,
+    fontSize: 14,
+    color: THEME.text,
   },
-  grid: {
-    padding: 15,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
+  clearBtn: {
+    position: "absolute",
+    right: 12,
+    top: "50%",
+    marginTop: -9,
   },
+
+  filterRow: {
+    alignItems: "center",
+    gap: 8,
+    paddingRight: 16,
+    height: 40,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+    maxWidth: 220,
+  },
+  chipSelected: {
+    backgroundColor: THEME.sage,
+    borderColor: THEME.sage,
+  },
+  chipUnselected: {
+    backgroundColor: THEME.card,
+    borderColor: THEME.border,
+  },
+  chipText: { fontSize: 12, fontWeight: "800" },
+  chipTextSelected: { color: "#FFFFFF" },
+  chipTextUnselected: { color: THEME.muted },
+
+  // grid cards
   card: {
     width: "48%",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: THEME.card,
+    borderRadius: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: THEME.border,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  image: {
-    width: "100%",
-    height: 140,
-  },
+
+  imageWrap: { position: "relative" },
+  image: { width: "100%", height: 150, backgroundColor: "#EEE" },
   placeholder: {
-    backgroundColor: "#eee",
+    backgroundColor: "#EEE",
     justifyContent: "center",
     alignItems: "center",
   },
-  caption: {
-    padding: 10,
-    fontSize: 14,
-    color: "#444",
-    fontWeight: "700",
-  },
-  user: {
+
+  locationPill: {
+    position: "absolute",
+    left: 10,
+    bottom: 10,
     paddingHorizontal: 10,
-    paddingBottom: 10,
-    color: "#888",
-    fontSize: 12,
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarMini: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#ddd",
-  },
-
-  usernameMini: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#6B7280",
-    maxWidth: 90,
-  },
-
-  userMini: {
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(31, 42, 36, 0.55)", // dark sage-ish overlay
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    flex: 1,
+    maxWidth: "78%",
+  },
+  locationPillText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "700",
+    flexShrink: 1,
+  },
+
+  categoryPill: {
+    alignSelf: "flex-start",
+    marginLeft: 12,
+    marginTop: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: THEME.sageSoft,
+    borderWidth: 1,
+    borderColor: THEME.border,
+  },
+  categoryText: { fontSize: 11, fontWeight: "900", color: THEME.text },
+
+  caption: {
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 8,
+    fontSize: 13,
+    color: THEME.text,
+    fontWeight: "800",
+    lineHeight: 18,
   },
 
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingTop: 4,
-    paddingBottom: 6,
+    paddingBottom: 12,
+    gap: 10,
+  },
+
+  userMini: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+    minWidth: 0,
+  },
+  avatarMini: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#ddd",
+  },
+  usernameMini: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: THEME.muted,
+    flexShrink: 1,
   },
 
   likesRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
+    flexShrink: 0,
   },
-
   likesText: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#6B7280",
-  },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingTop: 4,
-    paddingBottom: 10,
+    fontWeight: "800",
+    color: THEME.muted,
   },
 
-  locationText: {
-    fontSize: 11,
-    color: "#6B7280",
-    fontWeight: "500",
-    flex: 1,
-  },
-  imageWrap: { position: "relative" },
-
-  locationPill: {
-    position: "absolute",
-    left: 8,
-    bottom: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    maxWidth: "75%", // prevents covering the card
-  },
-
-  locationPillText: {
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "600",
-    flexShrink: 1,
+  emptyText: {
+    marginTop: 24,
+    textAlign: "center",
+    color: THEME.muted,
+    fontWeight: "800",
   },
 });

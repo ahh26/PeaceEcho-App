@@ -1,9 +1,18 @@
 import * as ImagePicker from "expo-image-picker";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 export default function PickPhotos() {
+  const params = useLocalSearchParams();
+
+  const reflectionCategory =
+    typeof params.reflectionCategory === "string"
+      ? params.reflectionCategory
+      : Array.isArray(params.reflectionCategory)
+        ? params.reflectionCategory[0]
+        : "";
+
   useFocusEffect(
     useCallback(() => {
       (async () => {
@@ -17,14 +26,14 @@ export default function PickPhotos() {
         if (!result.canceled) {
           const uris = result.assets.map((a) => a.uri);
           router.push({
-            pathname: "/(tabs)/create/edit",
-            params: { images: JSON.stringify(uris) },
+            pathname: "/create/edit",
+            params: { images: JSON.stringify(uris), reflectionCategory },
           });
         } else {
-          router.replace("/(tabs)/discover");
+          router.replace("/discover");
         }
       })();
-    }, [])
+    }, [reflectionCategory]),
   );
 
   return (

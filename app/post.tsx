@@ -73,15 +73,21 @@ function formatPostTime(createdAt: any) {
 }
 
 function CommentRow({
+  id,
   uid,
   text,
   createdAt,
   onPressUser,
+  canDelete,
+  onDelete,
 }: {
+  id: string;
   uid: string;
   text: string;
   createdAt?: any;
   onPressUser: () => void;
+  canDelete: boolean;
+  onDelete: () => void;
 }) {
   const [user, setUser] = useState<any>(null);
 
@@ -122,14 +128,33 @@ function CommentRow({
       </TouchableOpacity>
 
       <View style={{ flex: 1 }}>
-        <Text style={{ fontWeight: "800" }}>
-          {user?.username ?? "User"}{" "}
-          <Text style={{ fontWeight: "400", color: "#666" }}>
-            {createdAt ? `· ${formatPostTime(createdAt)}` : ""}
+        {/* Top line: username/time + delete */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+          }}
+        >
+          <Text style={{ fontWeight: "800", flexShrink: 1 }} numberOfLines={1}>
+            {user?.username ?? "User"}{" "}
+            <Text style={{ fontWeight: "400", color: "#666" }}>
+              {createdAt ? `· ${formatPostTime(createdAt)}` : ""}
+            </Text>
           </Text>
-        </Text>
 
-        <Text style={{ marginTop: 4, lineHeight: 18 }}>{text}</Text>
+          {canDelete && (
+            <TouchableOpacity onPress={onDelete} hitSlop={10}>
+              <Ionicons name="trash-outline" size={16} color="#9CA3AF" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Comment text */}
+        <Text style={{ marginTop: 4, lineHeight: 18, color: "#111" }}>
+          {text}
+        </Text>
       </View>
     </View>
   );
@@ -143,7 +168,7 @@ function CategoryChip({ label }: { label: string }) {
     <View
       style={{
         alignSelf: "flex-start",
-        backgroundColor: "#EEF2FF",
+        backgroundColor: "#E7EFE9",
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 999,
@@ -227,6 +252,11 @@ export default function PostDetail() {
   const [saved, setSaved] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState<CommentUI[]>([]);
+
+  const [replyTo, setReplyTo] = useState<{
+    commentId: string;
+    username?: string;
+  } | null>(null);
 
   const kb = useState(() => new Animated.Value(0))[0];
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -312,7 +342,7 @@ export default function PostDetail() {
           id: d.id,
           uid: data.uid,
           text: data.text ?? "",
-          createdAtLabel: formatPostTime(data.createdAt),
+          createdAt: data.createdAt,
         };
       });
       setComments(rows);
@@ -513,6 +543,46 @@ export default function PostDetail() {
     }
   };
 
+  const onDeleteComment = async (commentId: string) => {
+    if (!id) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    Alert.alert("Delete comment?", "This cannot be undone.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const postRef = doc(db, "posts", String(id));
+            const commentRef = doc(
+              db,
+              "posts",
+              String(id),
+              "comments",
+              commentId,
+            );
+
+            await runTransaction(db, async (tx) => {
+              const snap = await tx.get(commentRef);
+              if (!snap.exists()) return;
+
+              const data = snap.data() as any;
+              if (data.uid !== user.uid) throw new Error("Not authorized");
+
+              tx.delete(commentRef);
+              tx.update(postRef, { commentCount: increment(-1) });
+            });
+          } catch (e) {
+            console.log("delete comment failed:", e);
+            Alert.alert("Delete failed", "Please try again.");
+          }
+        },
+      },
+    ]);
+  };
+
   return (
     <SafeAreaView
       edges={["top", "left", "right"]}
@@ -655,20 +725,27 @@ export default function PostDetail() {
             </Text>
           ) : (
             <View style={{ marginTop: 12 }}>
-              {comments.map((c) => (
-                <CommentRow
-                  key={c.id}
-                  uid={c.uid}
-                  text={c.text}
-                  createdAt={c.createdAt}
-                  onPressUser={() =>
-                    router.push({
-                      pathname: "/user",
-                      params: { uid: c.uid },
-                    })
-                  }
-                />
-              ))}
+              {comments.map((c) => {
+                const canDelete = auth.currentUser?.uid === c.uid;
+
+                return (
+                  <CommentRow
+                    key={c.id}
+                    id={c.id}
+                    uid={c.uid}
+                    text={c.text}
+                    createdAt={c.createdAt}
+                    onPressUser={() =>
+                      router.push({
+                        pathname: "/user",
+                        params: { uid: c.uid },
+                      })
+                    }
+                    canDelete={!!canDelete}
+                    onDelete={() => onDeleteComment(c.id)}
+                  />
+                );
+              })}
             </View>
           )}
         </ScrollView>

@@ -15,6 +15,14 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
         headerShown: false,
         tabBarButton: HapticTab,
+
+        // edit the tool bar color here
+        //tabBarStyle: {
+        //   backgroundColor: "#F6F7F3",
+        //   borderTopColor: "#E6E9E3",
+        //   elevation: 0,
+        //   shadowOpacity: 0,
+        // },
       }}
     >
       <Tabs.Screen
@@ -52,6 +60,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="add-circle-outline" size={size} color={color} />
           ),
+          tabBarStyle: { display: "none" },
         }}
       />
 
