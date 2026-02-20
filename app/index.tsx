@@ -94,14 +94,14 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: THEME.bg,
-    alignItems: "center", // ✅ centers the 90% width inputs/buttons
+    alignItems: "center",
   },
   title: {
     fontSize: 28,
     fontWeight: "800",
     marginBottom: 40,
     color: THEME.text,
-    alignSelf: "flex-start", // optional: keeps title aligned to left
+    alignSelf: "flex-start", // keeps title aligned to left
   },
   textInput: {
     height: 50,
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     marginVertical: 15,
     backgroundColor: THEME.accent,
     shadowColor: THEME.accent,
-    padding: 20,
+    padding: 12,
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",

@@ -1,12 +1,19 @@
 import { PALETTES } from "@/constants/palettes";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
 } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { useState } from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity } from "react-native";
+import { useRef, useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db } from "../firebase";
 
@@ -16,6 +23,9 @@ export default function SignUp() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+
+  const [showPassword, setShowPassword] = useState(false);
+  const passwordRef = useRef<TextInput>(null);
 
   const signUp = async () => {
     try {
@@ -77,15 +87,34 @@ export default function SignUp() {
         autoCapitalize="none"
       />
 
-      <TextInput
-        style={styles.textInput}
-        placeholder="Password"
-        placeholderTextColor={THEME.subtle}
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        autoCapitalize="none"
-      />
+      <View style={styles.passwordRow}>
+        <TextInput
+          ref={passwordRef}
+          placeholder="Password"
+          placeholderTextColor={THEME.subtle}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!showPassword}
+          style={styles.passwordInput}
+          autoCapitalize="none"
+          autoCorrect={false}
+          textContentType="password"
+          returnKeyType="go"
+          onSubmitEditing={signUp}
+        />
+
+        <TouchableOpacity
+          onPress={() => setShowPassword((v) => !v)}
+          hitSlop={10}
+          accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+        >
+          <Ionicons
+            name={showPassword ? "eye-off-outline" : "eye-outline"}
+            size={22}
+            color={THEME.subtle}
+          />
+        </TouchableOpacity>
+      </View>
 
       <TouchableOpacity style={styles.button} onPress={signUp}>
         <Text style={styles.buttonText}>Sign Up</Text>
@@ -129,11 +158,34 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
+  passwordRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 50,
+    width: "90%",
+    borderWidth: 2,
+    borderRadius: 15,
+    marginVertical: 15,
+    paddingHorizontal: 25,
+    backgroundColor: THEME.card,
+    borderColor: THEME.border,
+
+    shadowColor: THEME.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  passwordInput: {
+    flex: 1,
+    fontSize: 16,
+    color: THEME.text,
+  },
   button: {
     width: "90%",
     marginVertical: 15,
     backgroundColor: THEME.accent,
-    padding: 20,
+    padding: 12,
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",

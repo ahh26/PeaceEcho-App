@@ -413,7 +413,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginTop: 14,
+    marginVertical: 14,
+    paddingHorizontal: 20,
   },
 
   primaryBtn: {

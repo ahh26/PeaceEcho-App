@@ -257,7 +257,7 @@ export default function DiscoverScreen() {
         columnWrapperStyle={{ justifyContent: "space-between" }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingTop: headerH + 8,
+          paddingTop: headerH + 12,
           paddingHorizontal: 15,
           paddingBottom: 20 + insets.bottom,
         }}

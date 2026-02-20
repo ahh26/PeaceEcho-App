@@ -20,16 +20,17 @@ export const PALETTES = {
     accent: "#6F8B77", // keep sage as accent if like
     accentSoft: "#E7EFE9",
     shadow: "rgba(17, 24, 39, 0.08)",
+    glass: "rgba(255,255,255,0.78)",
   },
   sandProfile: {
     bg: "#FAF7F0",
     card: "#FFFFFF",
     border: "#E6D8C3",
     text: "#111827",
-    subtext: "#C9B79B", // used for bio/secondary text
+    subtext: "#a4947b", // used for bio/secondary text
     subtle: "#9CA3AF",
-    accent: "#D7C3A2", // sand
-    accentSoft: "#EFE3CF", // sandSoft
+    accent: "#b6a17f", // sand
+    accentSoft: "#eddbbc", // sandSoft
     shadow: "rgba(17, 24, 39, 0.08)",
     glass: "rgba(255,255,255,0.78)",
   },

@@ -1,4 +1,5 @@
 import ProfileView from "@/components/ProfileView";
+import { PALETTES } from "@/constants/palettes";
 import { getUserProfile } from "@/lib/userProfile";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
@@ -15,6 +16,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db } from "../../../firebase";
+
+const THEME = PALETTES.sandProfile;
 
 type Region = {
   countryCode?: string;
@@ -228,7 +231,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["left", "right", "top"]}>
       <ProfileView
         profile={{
           username: profile?.username ?? "Unnamed",
@@ -273,12 +276,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
-    backgroundColor: "#FAF7F0",
+    backgroundColor: THEME.bg,
   },
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    backgroundColor: "#FAF7F0",
+    backgroundColor: THEME.bg,
   },
   primaryButton: {
     paddingVertical: 10,
@@ -296,6 +299,7 @@ const styles = StyleSheet.create({
     backgroundColor: "black",
     borderRadius: 14,
     paddingVertical: 14,
+    marginBottom: 20,
     alignItems: "center",
   },
 
