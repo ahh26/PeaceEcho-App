@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { reload, sendEmailVerification } from "firebase/auth";
 import { useState } from "react";
@@ -36,6 +37,9 @@ export default function VerifyEmail() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity onPress={router.back}>
+        <Ionicons name="chevron-back"></Ionicons>
+      </TouchableOpacity>
       <Text style={styles.title}>Verify your email</Text>
       <Text style={styles.text}>
         We sent a verification link to your email. Click it, then come back and

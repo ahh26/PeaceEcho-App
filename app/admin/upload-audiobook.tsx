@@ -18,6 +18,7 @@ import {
 
 import { Audio, type AVPlaybackStatus } from "expo-av";
 import { router } from "expo-router";
+import { doc, updateDoc } from "firebase/firestore";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useUser } from "../../context/UserContext";
 import { db, storage } from "../../firebase";
@@ -228,7 +229,6 @@ export default function UploadAudiobookAdmin() {
       const audioUrl = await getDownloadURL(audioRef);
 
       //4. Patch firestore doc with URLs
-      const { updateDoc, doc } = await import("firebase/firestore");
       await updateDoc(doc(db, "audiobooks", audiobookId), {
         coverUrl,
         audioUrl,

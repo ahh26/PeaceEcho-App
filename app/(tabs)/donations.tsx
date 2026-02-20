@@ -1,10 +1,10 @@
-import { Text } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Text } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Page() {
-  return(
+  return (
     <SafeAreaView style={{ flex: 1 }}>
-        <Text>Donations</Text>  
+      <Text>Donations</Text>
     </SafeAreaView>
   );
 }

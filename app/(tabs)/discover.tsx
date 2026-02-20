@@ -17,7 +17,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { db } from "../../firebase";
+import { auth, db } from "../../firebase";
 import { reflection_categories } from "../../lib/reflectionCategories";
 
 type CategoryId = string;
@@ -76,6 +76,15 @@ export default function DiscoverScreen() {
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
+    const user = auth.currentUser;
+
+    if (!user) {
+      setPosts([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -156,6 +165,9 @@ export default function DiscoverScreen() {
           {post.caption || ""}
         </Text>
 
+        {/* pushes footer to bottom */}
+        <View style={{ flex: 1 }} />
+
         {/* User + Likes Row */}
         <View style={styles.infoRow}>
           <View style={styles.userMini}>
@@ -198,12 +210,13 @@ export default function DiscoverScreen() {
     >
       {/* Fixed header (search + category row) */}
       <View
-        style={[styles.header, { paddingTop: insets.top + 6 }]}
+        style={[styles.header, { paddingTop: insets.top }]}
         onLayout={(e) => setHeaderH(e.nativeEvent.layout.height)}
       >
         <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={18} color={THEME.subtle} />
           <TextInput
-            placeholder="Search key words..."
+            placeholder="Search by key words..."
             style={styles.searchInput}
             value={search}
             onChangeText={setSearch}
@@ -253,7 +266,7 @@ export default function DiscoverScreen() {
         columnWrapperStyle={{ justifyContent: "space-between" }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingTop: headerH,
+          paddingTop: headerH + 8,
           paddingHorizontal: 15,
           paddingBottom: 20 + insets.bottom,
         }}
@@ -262,7 +275,6 @@ export default function DiscoverScreen() {
             No posts match your search/filter.
           </Text>
         }
-        style={{ marginTop: 8 }}
       />
     </SafeAreaView>
   );
@@ -286,20 +298,22 @@ const styles = StyleSheet.create({
 
   searchBar: {
     height: 44,
-    justifyContent: "center",
-    position: "relative",
-  },
-
-  searchInput: {
-    backgroundColor: THEME.card,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    paddingRight: 36,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: THEME.border,
+    backgroundColor: THEME.card,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    position: "relative",
+  },
+  searchInput: {
+    flex: 1,
     fontSize: 14,
     color: THEME.text,
+    fontWeight: "700",
+    paddingRight: 28,
   },
   clearBtn: {
     position: "absolute",
@@ -397,6 +411,7 @@ const styles = StyleSheet.create({
     color: THEME.text,
     fontWeight: "800",
     lineHeight: 18,
+    height: 54, //3 lines exactly
   },
 
   infoRow: {

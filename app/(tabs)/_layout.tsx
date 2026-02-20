@@ -7,12 +7,13 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const scheme = useColorScheme();
+  const theme = Colors[scheme === "dark" ? "dark" : "light"];
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        tabBarActiveTintColor: theme.tint,
         headerShown: false,
         tabBarButton: HapticTab,
 

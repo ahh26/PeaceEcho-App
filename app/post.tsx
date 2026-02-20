@@ -92,7 +92,8 @@ function CommentRow({
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    if (!uid) return;
+    if (!id || !auth.currentUser || !uid) return;
+
     const ref = doc(db, "users", uid);
     const unsub = onSnapshot(ref, (snap) => {
       setUser(snap.exists() ? snap.data() : null);
@@ -293,7 +294,7 @@ export default function PostDetail() {
   }, [kb]);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !auth.currentUser) return;
 
     const postRef = doc(db, "posts", String(id));
     const unsub = onSnapshot(postRef, (snap) => {
@@ -328,7 +329,7 @@ export default function PostDetail() {
 
   //subsribe comments
   useEffect(() => {
-    if (!id) return;
+    if (!id || !auth.currentUser) return;
 
     const q = query(
       collection(db, "posts", String(id), "comments"),

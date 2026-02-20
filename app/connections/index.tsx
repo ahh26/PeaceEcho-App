@@ -19,7 +19,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { db } from "../../firebase";
+import { auth, db } from "../../firebase";
 
 type ConnectionItem = {
   id: string;
@@ -76,7 +76,7 @@ export default function UserConnectionsScreen() {
 
   // Followers
   useEffect(() => {
-    if (!targetUid) return;
+    if (!targetUid || !auth.currentUser) return;
 
     setLoadingFollowers(true);
     const ref = collection(db, "users", targetUid, "followers");
@@ -104,6 +104,7 @@ export default function UserConnectionsScreen() {
 
   useEffect(() => {
     if (activeTab !== "followers") return;
+    if (!auth.currentUser) return;
 
     const unsubs: (() => void)[] = [];
     followers.forEach((f) => {
@@ -120,7 +121,7 @@ export default function UserConnectionsScreen() {
 
   // Following
   useEffect(() => {
-    if (!targetUid) return;
+    if (!targetUid || !auth.currentUser) return;
 
     setLoadingFollowing(true);
     const ref = collection(db, "users", targetUid, "following");
@@ -148,6 +149,7 @@ export default function UserConnectionsScreen() {
 
   useEffect(() => {
     if (activeTab !== "following") return;
+    if (!auth.currentUser) return;
 
     const unsubs: (() => void)[] = [];
     following.forEach((f) => {

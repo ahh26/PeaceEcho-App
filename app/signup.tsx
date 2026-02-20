@@ -48,8 +48,9 @@ export default function SignUp() {
 
       alert("Account created! Please verify your email.");
 
-      // change to verify email page later
-      router.replace("/verify-email");
+      // TODO: change to verify email page later
+      // router.replace("/verify-email");
+      router.replace("/(tabs)/discover");
     } catch (error: any) {
       alert("Sign up failed: " + error.message);
     }

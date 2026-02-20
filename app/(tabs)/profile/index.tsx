@@ -104,7 +104,7 @@ export default function ProfileScreen() {
   }, [user?.uid]);
 
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid || !auth.currentUser) return;
 
     const q = query(
       collection(db, "posts"),
@@ -139,7 +139,7 @@ export default function ProfileScreen() {
   }
 
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid || !auth.currentUser) return;
     if (activeTab !== "saved") return;
 
     const savedRef = collection(db, "users", user.uid, "savedPosts");

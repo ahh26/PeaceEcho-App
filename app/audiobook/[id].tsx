@@ -3,14 +3,14 @@ import { router, useLocalSearchParams } from "expo-router";
 import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Animated,
-  Image,
-  PanResponder,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    Image,
+    PanResponder,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { usePlayer } from "../../context/PlayerContext";
@@ -181,7 +181,7 @@ export default function AudioBookDetail() {
         {/* Top Bar */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-down" size={28} color="#4D5161" />
+            <Ionicons name="chevron-forward" size={28} color="#4D5161" />
           </TouchableOpacity>
           <Text style={styles.topTitle}>Listening Now</Text>
           <View style={{ width: 28 }} />
@@ -192,77 +192,84 @@ export default function AudioBookDetail() {
           <Image source={{ uri: book.coverUrl }} style={styles.cover} />
         </View>
 
-        {/* Title */}
-        <Text style={styles.title}>{book.title}</Text>
-        {!!book.intro && <Text style={styles.intro}>{book.intro}</Text>}
+        {/* Player area (squeezed) */}
+        <View style={styles.playerArea}>
+          <Text style={styles.title}>{book.title}</Text>
+          {!!book.intro && <Text style={styles.intro}>{book.intro}</Text>}
 
-        {/* Progress */}
-        <View
-          ref={barRef}
-          onLayout={measureBar}
-          style={styles.progressOuter}
-          {...panResponder.panHandlers}
-        >
-          <View style={styles.progressTrack}>
-            {/* fill */}
-            {isScrubbing ? (
-              <Animated.View
-                style={[styles.progressInner, { width: scrubXAnim }]}
-              />
-            ) : (
-              <View style={[styles.progressInner, { width: playbackWidth }]} />
-            )}
+          {/* Progress */}
+          <View
+            ref={barRef}
+            onLayout={measureBar}
+            style={styles.progressOuter}
+            {...panResponder.panHandlers}
+          >
+            <View style={styles.progressTrack}>
+              {isScrubbing ? (
+                <Animated.View
+                  style={[styles.progressInner, { width: scrubXAnim }]}
+                />
+              ) : (
+                <View
+                  style={[styles.progressInner, { width: playbackWidth }]}
+                />
+              )}
+            </View>
+
+            {barWidth > 0 &&
+              (isScrubbing ? (
+                <Animated.View
+                  style={[
+                    styles.knob,
+                    {
+                      transform: [
+                        { translateX: Animated.subtract(scrubXAnim, 7) },
+                      ],
+                    },
+                  ]}
+                />
+              ) : (
+                <View style={[styles.knob, { left: knobLeft }]} />
+              ))}
           </View>
 
-          {/* knob */}
-          {barWidth > 0 &&
-            (isScrubbing ? (
-              <Animated.View
-                style={[
-                  styles.knob,
-                  {
-                    transform: [
-                      { translateX: Animated.subtract(scrubXAnim, 7) },
-                    ],
-                  },
-                ]}
+          <View style={styles.timeRow}>
+            <Text style={styles.time}>{formatTime(displayedPos)}</Text>
+            <Text style={styles.time}>{formatTime(effectiveDur)}</Text>
+          </View>
+
+          {/* Controls */}
+          <View style={styles.controls}>
+            <TouchableOpacity onPress={() => jumpBy(-15000)}>
+              <Ionicons name="play-back" size={28} color="#495666" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.playBtn} onPress={onPressPlay}>
+              <Ionicons
+                name={isThis && isPlaying ? "pause" : "play"}
+                size={26}
+                color="white"
               />
-            ) : (
-              <View style={[styles.knob, { left: knobLeft }]} />
-            ))}
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => jumpBy(15000)}>
+              <Ionicons name="play-forward" size={28} color="#495666" />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <View style={styles.timeRow}>
-          <Text style={styles.time}>{formatTime(displayedPos)}</Text>
-          <Text style={styles.time}>{formatTime(effectiveDur)}</Text>
-        </View>
+        {/* Transcript block */}
+        <View style={styles.transcriptBlock}>
+          <Text style={styles.transcriptTitle}>Transcript</Text>
 
-        {/* Controls */}
-        <View style={styles.controls}>
-          <TouchableOpacity onPress={() => jumpBy(-15000)}>
-            <Ionicons name="play-back" size={28} color="#495666" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.playBtn} onPress={onPressPlay}>
-            <Ionicons
-              name={isThis && isPlaying ? "pause" : "play"}
-              size={26}
-              color="white"
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => jumpBy(15000)}>
-            <Ionicons name="play-forward" size={28} color="#495666" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Transcript */}
-        {!!book.transcriptText && (
-          <>
-            <Text style={styles.transcriptTitle}>Transcript</Text>
+          {book.transcriptText ? (
             <Text style={styles.transcript}>{book.transcriptText}</Text>
-          </>
-        )}
+          ) : (
+            <Text style={styles.noTranscript}>
+              No transcript available currently.
+            </Text>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -272,6 +279,10 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: "#FDF9F0",
+  },
+  content: {
+    marginTop: 18,
+    paddingHorizontal: 6,
   },
 
   container: {
@@ -312,7 +323,8 @@ const styles = StyleSheet.create({
   intro: {
     color: "#242633",
     opacity: 0.7,
-    marginTop: 6,
+    marginTop: 8,
+    lineHeight: 19,
   },
 
   timeRow: {
@@ -331,7 +343,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 40,
-    marginTop: 20,
+    marginTop: 16,
   },
 
   playBtn: {
@@ -346,7 +358,6 @@ const styles = StyleSheet.create({
   transcriptTitle: {
     color: "black",
     fontWeight: "800",
-    marginTop: 30,
     fontSize: 18,
   },
 
@@ -357,7 +368,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   progressOuter: {
-    marginTop: 20,
+    marginTop: 16,
     height: 20,
     justifyContent: "center",
   },
@@ -382,5 +393,26 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 999,
     backgroundColor: "#93A794",
+  },
+
+  transcriptBlock: {
+    marginTop: 40,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: "#FFFFFFAA",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+  },
+
+  noTranscript: {
+    marginTop: 10,
+    color: "#242633",
+    opacity: 0.6,
+    fontWeight: "700",
+    lineHeight: 20,
+  },
+  playerArea: {
+    marginTop: 18,
+    marginHorizontal: 20,
   },
 });

@@ -61,7 +61,7 @@ export default function UserScreen() {
   const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
-    if (!uid) {
+    if (!uid || !auth.currentUser) {
       setLoading(false);
       return;
     }
@@ -104,7 +104,7 @@ export default function UserScreen() {
   }, [uid]);
 
   useEffect(() => {
-    if (!uid) return;
+    if (!uid || !auth.currentUser) return;
 
     const q = query(
       collection(db, "posts"),
