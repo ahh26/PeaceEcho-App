@@ -1,14 +1,17 @@
+import { PALETTES } from "@/constants/palettes";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
-    sendEmailVerification,
-    sendPasswordResetEmail,
-    signOut,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signOut,
 } from "firebase/auth";
 import React, { useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth } from "../firebase";
+
+const THEME = PALETTES.beige;
 
 export default function SettingsScreen() {
   const [busy, setBusy] = useState(false);
@@ -147,7 +150,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 18 },
+  safe: { flex: 1, backgroundColor: THEME.bg, paddingHorizontal: 18 },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -159,7 +162,7 @@ const styles = StyleSheet.create({
 
   card: {
     borderWidth: 1,
-    borderColor: "#eee",
+    borderColor: THEME.border,
     borderRadius: 14,
     padding: 14,
     marginTop: 12,
@@ -172,7 +175,7 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 8,
   },
-  label: { fontSize: 12, color: "#666", fontWeight: "700" },
+  label: { fontSize: 12, color: THEME.subtext, fontWeight: "700" },
   value: {
     flex: 1,
     textAlign: "right",
@@ -187,8 +190,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
   },
-  btnOutline: { borderWidth: 1, borderColor: "#ddd", backgroundColor: "#fff" },
-  btnOutlineText: { fontWeight: "800", color: "#111", fontSize: 13 },
+  btnOutline: {
+    borderWidth: 1,
+    borderColor: THEME.border,
+    backgroundColor: THEME.card,
+  },
+  btnOutlineText: { fontWeight: "800", color: THEME.text, fontSize: 13 },
 
   btnDanger: { backgroundColor: "#111" },
   btnDangerText: { fontWeight: "800", color: "#fff", fontSize: 13 },

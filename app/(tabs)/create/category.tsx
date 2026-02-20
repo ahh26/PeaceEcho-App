@@ -1,8 +1,11 @@
+import { PALETTES } from "@/constants/palettes";
 import { router } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { reflection_categories } from "../../../lib/reflectionCategories";
+
+const THEME = PALETTES.beige;
 
 export default function CreateCategory() {
   return (
@@ -40,6 +43,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 18,
+    backgroundColor: THEME.bg,
   },
   title: {
     fontSize: 20,
@@ -55,7 +59,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 14,
     borderRadius: 14,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: THEME.card,
     gap: 10,
   },
   emoji: {
@@ -68,6 +72,6 @@ const styles = StyleSheet.create({
   cancel: {
     marginTop: 20,
     textAlign: "center",
-    color: "#6B7280",
+    color: THEME.subtext,
   },
 });

@@ -1,3 +1,4 @@
+import { PALETTES } from "@/constants/palettes";
 import { State } from "country-state-city";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
@@ -27,6 +28,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db, storage } from "../../../firebase";
 import { reflection_categories } from "../../../lib/reflectionCategories";
 import { getUserProfile } from "../../../lib/userProfile";
+
+const THEME = PALETTES.beige;
 
 async function uriToBlob(uri: string): Promise<Blob> {
   return await new Promise((resolve, reject) => {
@@ -402,7 +405,7 @@ export default function EditPostScreen() {
               <Text
                 style={{
                   fontWeight: "900",
-                  color: "#2563EB",
+                  color: THEME.accent,
                   opacity: busy ? 0.5 : 1,
                 }}
               >
@@ -545,7 +548,7 @@ export default function EditPostScreen() {
                 );
               }}
             >
-              <Text style={{ fontWeight: "800", color: "#2563EB" }}>
+              <Text style={{ fontWeight: "800", color: THEME.accent }}>
                 {locationEnabled ? "Remove" : "Add"}
               </Text>
             </TouchableOpacity>
@@ -733,11 +736,11 @@ export default function EditPostScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#F5F6FA" },
+  screen: { flex: 1, backgroundColor: THEME.bg },
 
   header: {
     height: 56,
-    backgroundColor: "#F5F6FA",
+    backgroundColor: THEME.bg,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
@@ -749,33 +752,33 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 16,
     fontWeight: "900",
-    color: "#111827",
+    color: THEME.text,
   },
   headerBtn: { paddingVertical: 8, paddingHorizontal: 8, minWidth: 72 },
   headerBtnText: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#111827",
+    color: THEME.text,
     textAlign: "center",
   },
   muted: { opacity: 0.45 },
-  primary: { color: "#2563EB" },
+  primary: { color: THEME.accent },
 
   content: { padding: 16, gap: 12 },
 
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: THEME.card,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: THEME.border,
   },
   cardTopRow: {
     flexDirection: "row",
     alignItems: "baseline",
     justifyContent: "space-between",
   },
-  cardTitle: { fontSize: 14, fontWeight: "900", color: "#111827" },
+  cardTitle: { fontSize: 14, fontWeight: "900", color: THEME.text },
   cardHint: { fontSize: 12, fontWeight: "700", color: "#6B7280" },
 
   minRule: { marginTop: 8, fontSize: 12, color: "#6B7280", fontWeight: "600" },
@@ -789,7 +792,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 14,
-    color: "#111827",
+    color: THEME.text,
     textAlignVertical: "top",
     backgroundColor: "#FFFFFF",
   },
@@ -818,21 +821,21 @@ const styles = StyleSheet.create({
   },
   countryInput: {
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: THEME.border,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 12,
-    backgroundColor: "#FFF",
+    backgroundColor: THEME.card,
   },
-  countryText: { fontSize: 14, fontWeight: "800", color: "#111827" },
+  countryText: { fontSize: 14, fontWeight: "800", color: THEME.text },
   input: {
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: THEME.border,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 14,
-    backgroundColor: "#FFF",
+    backgroundColor: THEME.card,
   },
 
   modalOverlay: {
@@ -841,7 +844,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalCard: {
-    backgroundColor: "#fff",
+    backgroundColor: THEME.card,
     padding: 16,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
@@ -854,10 +857,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   modalTitle: { fontSize: 16, fontWeight: "900" },
-  modalClose: { fontSize: 14, fontWeight: "900", color: "#111827" },
+  modalClose: { fontSize: 14, fontWeight: "900", color: THEME.text },
   modalSearch: {
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: THEME.border,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -870,39 +873,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: THEME.border,
     marginBottom: 8,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  stateItemText: { fontSize: 14, fontWeight: "900", color: "#111827" },
-  stateItemSub: { fontSize: 12, color: "#6B7280", fontWeight: "800" },
-  emptyText: { paddingVertical: 18, textAlign: "center", color: "#6B7280" },
+  stateItemText: { fontSize: 14, fontWeight: "900", color: THEME.text },
+  stateItemSub: { fontSize: 12, color: THEME.subtext, fontWeight: "800" },
+  emptyText: { paddingVertical: 18, textAlign: "center", color: THEME.subtext },
 
   modalClearState: {
     marginTop: 8,
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: THEME.border,
     alignItems: "center",
   },
-  modalClearStateText: { fontWeight: "900", color: "#111827" },
+  modalClearStateText: { fontWeight: "900", color: THEME.text },
   categoryPill: {
     alignSelf: "flex-start",
-    backgroundColor: "#EEF2FF",
+    backgroundColor: THEME.accentSoft,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
     marginTop: 10,
   },
-  categoryPillText: { fontSize: 13, fontWeight: "900", color: "#111827" },
+  categoryPillText: { fontSize: 13, fontWeight: "900", color: THEME.text },
   categoryHint: {
     marginTop: 10,
     fontSize: 12,
     fontWeight: "700",
-    color: "#6B7280",
+    color: THEME.subtext,
   },
 
   categoryItem: {
@@ -910,16 +913,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: THEME.border,
     marginBottom: 8,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   categoryItemSelected: {
-    borderColor: "#2563EB",
-    backgroundColor: "#EFF6FF",
+    borderColor: THEME.accent,
+    backgroundColor: THEME.accentSoft,
   },
-  categoryItemText: { fontSize: 14, fontWeight: "900", color: "#111827" },
-  categoryCheck: { fontSize: 16, fontWeight: "900", color: "#2563EB" },
+  categoryItemText: { fontSize: 14, fontWeight: "900", color: THEME.text },
+  categoryCheck: { fontSize: 16, fontWeight: "900", color: THEME.accent },
 });

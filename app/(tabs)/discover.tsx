@@ -25,18 +25,6 @@ type CategoryId = string;
 
 const THEME = PALETTES.beige;
 
-// const THEME = {
-//   bg: "#F6F7F3",
-//   card: "#FFFFFF",
-//   border: "#E6E9E3",
-//   text: "#1F2A24",
-//   muted: "#7C877F",
-//   subtle: "#9CA3AF",
-//   sage: "#6F8B77", // selected chip + accents
-//   sageSoft: "#E7EFE9", // light sage backgrounds
-//   shadow: "rgba(17, 24, 39, 0.08)",
-// };
-
 function CategoryChip({
   label,
   selected,
@@ -208,7 +196,7 @@ export default function DiscoverScreen() {
 
   return (
     <SafeAreaView
-      edges={["left", "right", "bottom"]}
+      edges={["left", "right"]}
       style={{ flex: 1, backgroundColor: THEME.bg }}
     >
       {/* Fixed header (search + category row) */}

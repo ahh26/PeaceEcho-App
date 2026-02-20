@@ -111,7 +111,7 @@ export default function AudiobookScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView edges={["left", "right", "bottom"]} style={styles.safe}>
+      <SafeAreaView edges={["left", "right"]} style={styles.safe}>
         {header}
         <View style={styles.loadingWrap}>
           <ActivityIndicator />
@@ -123,7 +123,7 @@ export default function AudiobookScreen() {
   }
 
   return (
-    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.safe}>
+    <SafeAreaView edges={["left", "right"]} style={styles.safe}>
       <FlatList
         data={filteredBooks}
         keyExtractor={(item) => item.id}

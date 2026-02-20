@@ -1,4 +1,5 @@
 // ProfileEdit.tsx
+import { PALETTES } from "@/constants/palettes";
 import { State } from "country-state-city";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
@@ -26,6 +27,8 @@ import {
   updateProfileAndBackfillPosts,
   uploadProfileImage,
 } from "../../../lib/userProfile";
+
+const THEME = PALETTES.beige;
 
 type Region = {
   countryCode?: string; // "CA"

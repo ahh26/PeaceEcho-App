@@ -31,9 +31,11 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { COLORS } from "../constants/colors";
+import { PALETTES } from "../constants/palettes";
 import { auth, db } from "../firebase";
 import { reflection_categories } from "../lib/reflectionCategories";
+
+const COLORS = PALETTES.beige;
 
 type CommentUI = {
   id: string;
@@ -587,7 +589,7 @@ export default function PostDetail() {
   return (
     <SafeAreaView
       edges={["top", "left", "right"]}
-      style={{ flex: 1, backgroundColor: COLORS.background }}
+      style={{ flex: 1, backgroundColor: COLORS.bg }}
     >
       <View style={{ flex: 1 }}>
         <ScrollView
@@ -673,7 +675,13 @@ export default function PostDetail() {
 
           {/* Caption */}
           {!!post.caption && (
-            <Text style={{ fontSize: 16, marginTop: 12, lineHeight: 20 }}>
+            <Text
+              style={{
+                fontSize: 16,
+                marginTop: 12,
+                lineHeight: 20,
+              }}
+            >
               {post.caption}
             </Text>
           )}

@@ -50,6 +50,7 @@ export default function UploadAudiobookAdmin() {
   const [intro, setIntro] = useState("");
   const [category, setCategory] = useState("conflict");
   const [transcriptText, setTranscriptText] = useState("");
+  const [narrator, setNarrator] = useState("");
 
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [audio, setAudio] = useState<{
@@ -204,6 +205,7 @@ export default function UploadAudiobookAdmin() {
       const docRef = await addDoc(collection(db, "audiobooks"), {
         title: title.trim(),
         intro: intro.trim(),
+        narrator: narrator.trim(),
         category: category.trim() || "conflict",
         transcriptText: transcriptText.trim() || "",
         status: "published",
@@ -241,6 +243,7 @@ export default function UploadAudiobookAdmin() {
       //reset form
       setTitle("");
       setIntro("");
+      setNarrator("");
       setCategory("conflict");
       setTranscriptText("");
       setCoverUri(null);
@@ -303,6 +306,14 @@ export default function UploadAudiobookAdmin() {
           placeholder="Short description"
           style={[styles.input, styles.multiline]}
           multiline
+        />
+
+        <Text style={styles.label}>Narrator</Text>
+        <TextInput
+          value={narrator}
+          onChangeText={setNarrator}
+          placeholder="Narrator"
+          style={[styles.input]}
         />
 
         <Text style={styles.label}>Category</Text>
