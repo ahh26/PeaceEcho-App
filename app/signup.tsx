@@ -1,3 +1,4 @@
+import { PALETTES } from "@/constants/palettes";
 import { router } from "expo-router";
 import {
   createUserWithEmailAndPassword,
@@ -8,6 +9,8 @@ import { useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db } from "../firebase";
+
+const THEME = PALETTES.sage;
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
@@ -24,10 +27,8 @@ export default function SignUp() {
       const user = userCredential.user;
       const uid = user.uid;
 
-      // send verification email
       await sendEmailVerification(user);
 
-      // store user profile
       await setDoc(doc(db, "users", uid), {
         uid,
         email,
@@ -47,9 +48,6 @@ export default function SignUp() {
       });
 
       alert("Account created! Please verify your email.");
-
-      // TODO: change to verify email page later
-      // router.replace("/verify-email");
       router.replace("/(tabs)/discover");
     } catch (error: any) {
       alert("Sign up failed: " + error.message);
@@ -62,15 +60,18 @@ export default function SignUp() {
 
       <TextInput
         style={styles.textInput}
-        placeholder="email"
+        placeholder="Email"
+        placeholderTextColor={THEME.subtle}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
+        keyboardType="email-address"
       />
 
       <TextInput
         style={styles.textInput}
         placeholder="Username"
+        placeholderTextColor={THEME.subtle}
         value={username}
         onChangeText={setUsername}
         autoCapitalize="none"
@@ -78,7 +79,8 @@ export default function SignUp() {
 
       <TextInput
         style={styles.textInput}
-        placeholder="password"
+        placeholder="Password"
+        placeholderTextColor={THEME.subtle}
         secureTextEntry
         value={password}
         onChangeText={setPassword}
@@ -97,26 +99,59 @@ export default function SignUp() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20 },
-  title: { fontSize: 28, fontWeight: "700", marginBottom: 20 },
-  textInput: {
-    height: 50,
-    borderWidth: 1,
-    borderRadius: 10,
-    marginVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: "#fff",
-  },
-  button: {
-    backgroundColor: "#5C6BC0",
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 20,
+  container: {
+    padding: 20,
+    backgroundColor: THEME.bg,
+    flex: 1,
     alignItems: "center",
   },
-  buttonText: { color: "#fff", fontSize: 18 },
+  title: {
+    fontSize: 28,
+    fontWeight: "800",
+    marginBottom: 40, // same as Login
+    color: THEME.text,
+  },
+
+  textInput: {
+    height: 50,
+    width: "90%",
+    backgroundColor: THEME.card,
+    borderColor: THEME.border,
+    borderWidth: 2,
+    borderRadius: 15,
+    marginVertical: 15,
+    paddingHorizontal: 25,
+    fontSize: 16,
+    color: THEME.text,
+    shadowColor: THEME.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  button: {
+    width: "90%",
+    marginVertical: 15,
+    backgroundColor: THEME.accent,
+    padding: 20,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: THEME.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+
+  buttonText: {
+    color: THEME.card,
+    fontSize: 18,
+    fontWeight: "600",
+  },
+
   link: {
-    color: "#5C6BC0",
+    color: THEME.accent,
     marginTop: 20,
     textAlign: "center",
     fontSize: 16,

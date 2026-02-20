@@ -1,3 +1,4 @@
+import { PALETTES } from "@/constants/palettes";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
@@ -8,6 +9,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+const THEME = PALETTES.sandProfile;
 
 export type ProfileViewProfile = {
   username?: string;
@@ -124,7 +127,7 @@ export default function ProfileView({
             style={styles.topIconBtn}
             activeOpacity={0.85}
           >
-            <Ionicons name="chevron-back" size={22} color={stylesVars.sand} />
+            <Ionicons name="chevron-back" size={22} color={THEME.accent} />
           </TouchableOpacity>
         ) : (
           <View style={styles.topSlot} />
@@ -142,11 +145,7 @@ export default function ProfileView({
             style={styles.topIconBtn}
             activeOpacity={0.85}
           >
-            <Ionicons
-              name="settings-outline"
-              size={20}
-              color={stylesVars.sand}
-            />
+            <Ionicons name="settings-outline" size={20} color={THEME.accent} />
           </TouchableOpacity>
         ) : (
           <View style={styles.topSlot} />
@@ -168,7 +167,7 @@ export default function ProfileView({
       {/* Location */}
       {!!regionText && (
         <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={14} color={stylesVars.sand} />
+          <Ionicons name="location-outline" size={14} color={THEME.accent} />
           <Text style={styles.locationText} numberOfLines={1}>
             {regionText}
           </Text>
@@ -244,9 +243,7 @@ export default function ProfileView({
           <Ionicons
             name="grid-outline"
             size={16}
-            color={
-              activeTab === "posts" ? stylesVars.sand : stylesVars.inkMuted
-            }
+            color={activeTab === "posts" ? THEME.accent : THEME.subtle}
           />
           <Text
             style={[
@@ -270,9 +267,7 @@ export default function ProfileView({
             <Ionicons
               name="bookmark-outline"
               size={16}
-              color={
-                activeTab === "saved" ? stylesVars.sand : stylesVars.inkMuted
-              }
+              color={activeTab === "saved" ? THEME.accent : THEME.subtle}
             />
             <Text
               style={[
@@ -317,17 +312,8 @@ export default function ProfileView({
   );
 }
 
-const stylesVars = {
-  bg: "#FAF7F0",
-  sand: "#D7C3A2",
-  sandSoft: "#EFE3CF",
-  sandText: "#C9B79B",
-  inkMuted: "#9CA3AF",
-  whiteGlass: "rgba(255,255,255,0.78)",
-};
-
 const styles = StyleSheet.create({
-  container: { backgroundColor: stylesVars.bg },
+  container: { backgroundColor: THEME.bg },
   content: { paddingHorizontal: 18, paddingBottom: 28 },
 
   topBar: {
@@ -337,18 +323,22 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   topSlot: { width: 36, height: 36 },
+
   topIconBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.78)",
+    backgroundColor: THEME.glass,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: THEME.border,
   },
+
   handleText: {
     flex: 1,
     textAlign: "center",
-    color: stylesVars.sand,
+    color: THEME.accent,
     fontWeight: "800",
     letterSpacing: 0.2,
   },
@@ -358,17 +348,22 @@ const styles = StyleSheet.create({
     width: 92,
     height: 92,
     borderRadius: 46,
-    backgroundColor: stylesVars.sandSoft,
+    backgroundColor: THEME.accentSoft,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatar: { width: 82, height: 82, borderRadius: 41, backgroundColor: "#eee" },
+  avatar: {
+    width: 82,
+    height: 82,
+    borderRadius: 41,
+    backgroundColor: "#eee",
+  },
 
   displayName: {
     textAlign: "center",
     fontSize: 22,
     fontWeight: "900",
-    color: stylesVars.sand,
+    color: THEME.accent,
     marginTop: 12,
   },
 
@@ -381,7 +376,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   locationText: {
-    color: stylesVars.sand,
+    color: THEME.accent,
     fontWeight: "800",
     letterSpacing: 1.2,
     fontSize: 11,
@@ -391,7 +386,7 @@ const styles = StyleSheet.create({
   bioText: {
     textAlign: "center",
     marginTop: 10,
-    color: stylesVars.sandText,
+    color: THEME.subtext,
     fontWeight: "600",
     lineHeight: 18,
     paddingHorizontal: 12,
@@ -404,12 +399,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   statItem: { alignItems: "center", minWidth: 90 },
-  statNumber: { fontSize: 18, fontWeight: "900", color: stylesVars.sand },
+  statNumber: { fontSize: 18, fontWeight: "900", color: THEME.accent },
   statLabel: {
     marginTop: 6,
     fontSize: 10,
     fontWeight: "800",
-    color: "#D1C1A4",
+    color: THEME.subtext,
+    opacity: 0.85,
     letterSpacing: 1.2,
   },
 
@@ -419,38 +415,49 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 14,
   },
+
   primaryBtn: {
     flex: 1,
-    backgroundColor: stylesVars.sand,
+    backgroundColor: THEME.accent,
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: THEME.shadow,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  primaryBtnText: { color: "#fff", fontWeight: "900", fontSize: 14 },
+  primaryBtnText: { color: THEME.card, fontWeight: "900", fontSize: 14 },
+
   primaryBtnGhost: {
-    backgroundColor: stylesVars.whiteGlass,
+    backgroundColor: THEME.glass,
     borderWidth: 1,
-    borderColor: "#E6D8C3",
+    borderColor: THEME.border,
   },
-  primaryBtnGhostText: { color: stylesVars.sand },
+  primaryBtnGhostText: { color: THEME.accent },
 
   iconBtn: {
     width: 52,
     height: 52,
     borderRadius: 14,
-    backgroundColor: stylesVars.whiteGlass,
+    backgroundColor: THEME.glass,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: THEME.border,
   },
 
   tabs: {
     flexDirection: "row",
     gap: 10,
     marginTop: 16,
-    backgroundColor: stylesVars.whiteGlass,
+    backgroundColor: THEME.glass,
     borderRadius: 16,
     padding: 8,
+    borderWidth: 1,
+    borderColor: THEME.border,
   },
   tabPill: {
     flex: 1,
@@ -462,12 +469,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tabPillActive: {
-    backgroundColor: "#fff",
+    backgroundColor: THEME.card,
     borderWidth: 1,
-    borderColor: "#F0E4D2",
+    borderColor: THEME.border,
   },
-  tabText: { fontSize: 13, fontWeight: "800", color: stylesVars.inkMuted },
-  tabTextActive: { color: stylesVars.sand },
+  tabText: { fontSize: 13, fontWeight: "800", color: THEME.subtle },
+  tabTextActive: { color: THEME.accent },
 
   grid: {
     marginTop: 14,
@@ -480,20 +487,27 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: "#eee",
+    backgroundColor: THEME.accentSoft,
     marginBottom: 14,
+    borderWidth: 1,
+    borderColor: THEME.border,
   },
   tileImg: { width: "100%", height: "100%" },
+
   tilePlaceholder: {
-    backgroundColor: "#EEE6DA",
+    backgroundColor: THEME.accentSoft,
     alignItems: "center",
     justifyContent: "center",
   },
-  placeholderText: { fontSize: 12, color: "#8B7C65", fontWeight: "700" },
+  placeholderText: {
+    fontSize: 12,
+    color: THEME.subtext,
+    fontWeight: "700",
+  },
 
   emptyText: {
     textAlign: "center",
-    color: stylesVars.inkMuted,
+    color: THEME.subtle,
     fontWeight: "700",
   },
 });

@@ -1,3 +1,4 @@
+import { PALETTES } from "@/constants/palettes";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
@@ -22,17 +23,19 @@ import { reflection_categories } from "../../lib/reflectionCategories";
 
 type CategoryId = string;
 
-const THEME = {
-  bg: "#F6F7F3",
-  card: "#FFFFFF",
-  border: "#E6E9E3",
-  text: "#1F2A24",
-  muted: "#7C877F",
-  subtle: "#9CA3AF",
-  sage: "#6F8B77", // selected chip + accents
-  sageSoft: "#E7EFE9", // light sage backgrounds
-  shadow: "rgba(17, 24, 39, 0.08)",
-};
+const THEME = PALETTES.beige;
+
+// const THEME = {
+//   bg: "#F6F7F3",
+//   card: "#FFFFFF",
+//   border: "#E6E9E3",
+//   text: "#1F2A24",
+//   muted: "#7C877F",
+//   subtle: "#9CA3AF",
+//   sage: "#6F8B77", // selected chip + accents
+//   sageSoft: "#E7EFE9", // light sage backgrounds
+//   shadow: "rgba(17, 24, 39, 0.08)",
+// };
 
 function CategoryChip({
   label,
@@ -336,8 +339,8 @@ const styles = StyleSheet.create({
     maxWidth: 220,
   },
   chipSelected: {
-    backgroundColor: THEME.sage,
-    borderColor: THEME.sage,
+    backgroundColor: THEME.accent,
+    borderColor: THEME.accent,
   },
   chipUnselected: {
     backgroundColor: THEME.card,
@@ -345,7 +348,7 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 12, fontWeight: "800" },
   chipTextSelected: { color: "#FFFFFF" },
-  chipTextUnselected: { color: THEME.muted },
+  chipTextUnselected: { color: THEME.subtext },
 
   // grid cards
   card: {
@@ -397,7 +400,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: THEME.sageSoft,
+    backgroundColor: THEME.accentSoft,
     borderWidth: 1,
     borderColor: THEME.border,
   },
@@ -440,7 +443,7 @@ const styles = StyleSheet.create({
   usernameMini: {
     fontSize: 12,
     fontWeight: "800",
-    color: THEME.muted,
+    color: THEME.subtext,
     flexShrink: 1,
   },
 
@@ -453,13 +456,13 @@ const styles = StyleSheet.create({
   likesText: {
     fontSize: 12,
     fontWeight: "800",
-    color: THEME.muted,
+    color: THEME.subtext,
   },
 
   emptyText: {
     marginTop: 24,
     textAlign: "center",
-    color: THEME.muted,
+    color: THEME.subtext,
     fontWeight: "800",
   },
 });

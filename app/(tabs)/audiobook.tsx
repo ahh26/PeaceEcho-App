@@ -1,3 +1,4 @@
+import { PALETTES } from "@/constants/palettes";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
@@ -26,16 +27,7 @@ import MiniPlayer from "../../components/miniPlayer";
 import { usePlayer } from "../../context/PlayerContext";
 import { auth, db } from "../../firebase";
 
-const THEME = {
-  bg: "#F6F7F3",
-  card: "#FFFFFF",
-  border: "#E6E9E3",
-  text: "#1F2A24",
-  muted: "#7C877F",
-  subtle: "#9CA3AF",
-  sage: "#6F8B77",
-  sageSoft: "#E7EFE9",
-};
+const THEME = PALETTES.beige;
 
 export default function AudiobookScreen() {
   const [books, setBooks] = useState<any[]>([]);
@@ -145,7 +137,7 @@ export default function AudiobookScreen() {
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
             <View style={styles.emptyIcon}>
-              <Ionicons name="headset-outline" size={22} color={THEME.sage} />
+              <Ionicons name="headset-outline" size={22} color={THEME.accent} />
             </View>
             <Text style={styles.emptyTitle}>No matches</Text>
             <Text style={styles.emptyText}>
@@ -208,7 +200,7 @@ export default function AudiobookScreen() {
                   <Ionicons
                     name={isActive ? "stats-chart" : "play"}
                     size={14}
-                    color={THEME.sage}
+                    color={THEME.accent}
                   />
                   <Text style={styles.listenText}>
                     {isActive ? "Now Playing" : "Listen"}
@@ -235,7 +227,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 13,
     fontWeight: "700",
-    color: THEME.muted,
+    color: THEME.subtext,
   },
 
   searchBar: {
@@ -278,7 +270,12 @@ const styles = StyleSheet.create({
   textWrap: { flex: 1, minWidth: 0 },
 
   title: { fontSize: 15, fontWeight: "900", color: THEME.text },
-  author: { marginTop: 2, fontSize: 12, fontWeight: "800", color: THEME.muted },
+  author: {
+    marginTop: 2,
+    fontSize: 12,
+    fontWeight: "800",
+    color: THEME.subtext,
+  },
   intro: {
     marginTop: 6,
     fontSize: 13,
@@ -301,22 +298,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: THEME.sageSoft,
+    backgroundColor: THEME.accentSoft,
     borderWidth: 1,
     borderColor: THEME.border,
   },
   metaText: { fontSize: 12, fontWeight: "900", color: THEME.text },
-  metaRight: { fontSize: 12, fontWeight: "800", color: THEME.muted },
+  metaRight: { fontSize: 12, fontWeight: "800", color: THEME.subtext },
 
   loadingWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { marginTop: 10, color: THEME.muted, fontWeight: "700" },
+  loadingText: { marginTop: 10, color: THEME.subtext, fontWeight: "700" },
 
   emptyWrap: { marginTop: 30, alignItems: "center", paddingHorizontal: 20 },
   emptyIcon: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: THEME.sageSoft,
+    backgroundColor: THEME.accentSoft,
     borderWidth: 1,
     borderColor: THEME.border,
     alignItems: "center",
@@ -332,7 +329,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 13,
     fontWeight: "700",
-    color: THEME.muted,
+    color: THEME.subtext,
     textAlign: "center",
     lineHeight: 18,
   },
@@ -383,7 +380,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 12,
     fontWeight: "800",
-    color: THEME.muted,
+    color: THEME.subtext,
   },
 
   rowIntro: {
@@ -412,7 +409,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: THEME.sageSoft,
+    backgroundColor: THEME.accentSoft,
     borderWidth: 1,
     borderColor: THEME.border,
   },
@@ -427,7 +424,7 @@ const styles = StyleSheet.create({
   },
   rowCardActive: {
     backgroundColor: "#EEF6F1", // noticeable green tint
-    borderColor: THEME.sage,
+    borderColor: THEME.accent,
     borderWidth: 1.5,
     shadowColor: "#000",
     shadowOpacity: 0.08,
@@ -437,6 +434,6 @@ const styles = StyleSheet.create({
 
   listenBtnActive: {
     backgroundColor: "#DCE9DF",
-    borderColor: THEME.sage,
+    borderColor: THEME.accent,
   },
 });

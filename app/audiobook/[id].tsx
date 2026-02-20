@@ -1,20 +1,23 @@
+import { PALETTES } from "@/constants/palettes";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    Animated,
-    Image,
-    PanResponder,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Image,
+  PanResponder,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { usePlayer } from "../../context/PlayerContext";
 import { db } from "../../firebase";
+
+const THEME = PALETTES.beige;
 
 function formatTime(ms: number) {
   if (!ms || ms < 0) return "0:00";
@@ -278,8 +281,9 @@ export default function AudioBookDetail() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#FDF9F0",
+    backgroundColor: THEME.bg,
   },
+
   content: {
     marginTop: 18,
     paddingHorizontal: 6,
@@ -297,9 +301,9 @@ const styles = StyleSheet.create({
   },
 
   topTitle: {
-    color: "#222934",
+    color: THEME.text,
     fontWeight: "700",
-    opacity: 0.7,
+    opacity: 0.75,
   },
 
   coverWrap: {
@@ -311,20 +315,54 @@ const styles = StyleSheet.create({
     width: 350,
     height: 350,
     borderRadius: 12,
+    backgroundColor: THEME.accentSoft, // helps while loading
+  },
+
+  playerArea: {
+    marginTop: 18,
+    marginHorizontal: 20,
   },
 
   title: {
-    color: "#242737",
+    color: THEME.text,
     fontSize: 22,
     fontWeight: "800",
     marginTop: 20,
   },
 
   intro: {
-    color: "#242633",
-    opacity: 0.7,
+    color: THEME.subtext,
+    opacity: 0.85,
     marginTop: 8,
     lineHeight: 19,
+  },
+
+  progressOuter: {
+    marginTop: 16,
+    height: 20,
+    justifyContent: "center",
+  },
+
+  progressTrack: {
+    height: 4,
+    backgroundColor: THEME.accentSoft,
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+
+  progressInner: {
+    height: 4,
+    backgroundColor: THEME.accent,
+    borderRadius: 999,
+  },
+
+  knob: {
+    position: "absolute",
+    top: 3,
+    width: 14,
+    height: 14,
+    borderRadius: 999,
+    backgroundColor: THEME.accent,
   },
 
   timeRow: {
@@ -334,7 +372,7 @@ const styles = StyleSheet.create({
   },
 
   time: {
-    color: "#A0A5AD",
+    color: THEME.subtle,
     fontSize: 12,
   },
 
@@ -350,69 +388,48 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 999,
-    backgroundColor: "#93A794",
+    backgroundColor: THEME.accent,
     alignItems: "center",
     justifyContent: "center",
-  },
-
-  transcriptTitle: {
-    color: "black",
-    fontWeight: "800",
-    fontSize: 18,
-  },
-
-  transcript: {
-    color: "black",
-    opacity: 0.85,
-    marginTop: 10,
-    lineHeight: 22,
-  },
-  progressOuter: {
-    marginTop: 16,
-    height: 20,
-    justifyContent: "center",
-  },
-
-  progressTrack: {
-    height: 4,
-    backgroundColor: "#ECEFE3",
-    borderRadius: 999,
-    overflow: "hidden",
-  },
-
-  progressInner: {
-    height: 4,
-    backgroundColor: "#93A794",
-    borderRadius: 999,
-  },
-
-  knob: {
-    position: "absolute",
-    top: 3,
-    width: 14,
-    height: 14,
-    borderRadius: 999,
-    backgroundColor: "#93A794",
+    shadowColor: THEME.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 4,
   },
 
   transcriptBlock: {
     marginTop: 40,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: "#FFFFFFAA",
+    backgroundColor: THEME.card,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    borderColor: THEME.border,
+    shadowColor: THEME.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+
+  transcriptTitle: {
+    color: THEME.text,
+    fontWeight: "800",
+    fontSize: 18,
+  },
+
+  transcript: {
+    color: THEME.text,
+    opacity: 0.88,
+    marginTop: 10,
+    lineHeight: 22,
   },
 
   noTranscript: {
     marginTop: 10,
-    color: "#242633",
-    opacity: 0.6,
+    color: THEME.subtext,
+    opacity: 0.85,
     fontWeight: "700",
     lineHeight: 20,
-  },
-  playerArea: {
-    marginTop: 18,
-    marginHorizontal: 20,
   },
 });
