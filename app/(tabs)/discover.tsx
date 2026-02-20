@@ -263,7 +263,7 @@ export default function DiscoverScreen() {
         }}
         ListEmptyComponent={
           <Text style={styles.emptyText}>
-            No posts match your search/filter.
+            No posts match your search / filter.
           </Text>
         }
       />

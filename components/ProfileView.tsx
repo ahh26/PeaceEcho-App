@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
 
   primaryBtn: {
     flex: 1,
-    backgroundColor: THEME.accent,
+    backgroundColor: THEME.accentSoft,
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: "center",
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 3,
   },
-  primaryBtnText: { color: THEME.card, fontWeight: "900", fontSize: 14 },
+  primaryBtnText: { color: THEME.accent, fontWeight: "900", fontSize: 14 },
 
   primaryBtnGhost: {
     backgroundColor: THEME.glass,
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   tabs: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 16,
+    marginTop: 10,
     backgroundColor: THEME.glass,
     borderRadius: 16,
     padding: 8,
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
   tileImg: { width: "100%", height: "100%" },
 
   tilePlaceholder: {
-    backgroundColor: THEME.accentSoft,
+    backgroundColor: THEME.card,
     alignItems: "center",
     justifyContent: "center",
   },

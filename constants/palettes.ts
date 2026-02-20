@@ -29,7 +29,7 @@ export const PALETTES = {
     text: "#111827",
     subtext: "#a4947b", // used for bio/secondary text
     subtle: "#9CA3AF",
-    accent: "#b6a17f", // sand
+    accent: "#6c5838", // sand
     accentSoft: "#eddbbc", // sandSoft
     shadow: "rgba(17, 24, 39, 0.08)",
     glass: "rgba(255,255,255,0.78)",
