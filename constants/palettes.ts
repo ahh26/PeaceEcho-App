@@ -25,7 +25,7 @@ export const PALETTES = {
   sandProfile: {
     bg: "#FAF7F0",
     card: "#FFFFFF",
-    border: "#E6D8C3",
+    border: "#ebe0ce",
     text: "#111827",
     subtext: "#a4947b", // used for bio/secondary text
     subtle: "#9CA3AF",

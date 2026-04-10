@@ -589,7 +589,7 @@ export default function PostDetail() {
   return (
     <SafeAreaView
       edges={["top", "left", "right"]}
-      style={{ flex: 1, backgroundColor: COLORS.card }}
+      style={{ flex: 1, backgroundColor: COLORS.bg }}
     >
       <View style={{ flex: 1 }}>
         <ScrollView

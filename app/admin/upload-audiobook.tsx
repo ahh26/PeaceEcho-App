@@ -38,7 +38,6 @@ function safeExtFromName(name?: string) {
 export default function UploadAudiobookAdmin() {
   const { user, loading } = useUser();
 
-  // paste admin UID here
   const admin_uids = useMemo(
     () => new Set<string>(["e0li8PdRZYO9ZUtmBmJLcSRi4WE2"]),
     [],
@@ -107,7 +106,6 @@ export default function UploadAudiobookAdmin() {
   };
 
   useEffect(() => {
-    // when audio changes, unload old preview sound
     (async () => {
       try {
         if (previewRef.current) {
@@ -122,7 +120,6 @@ export default function UploadAudiobookAdmin() {
   }, [audio?.uri]);
 
   useEffect(() => {
-    // cleanup on unmount
     return () => {
       (async () => {
         try {
@@ -169,7 +166,6 @@ export default function UploadAudiobookAdmin() {
       if (st.isPlaying) {
         await previewRef.current.pauseAsync();
       } else {
-        // if at end, restart
         const nearEnd =
           st.durationMillis != null &&
           st.positionMillis != null &&
@@ -201,13 +197,37 @@ export default function UploadAudiobookAdmin() {
     try {
       setSubmitting(true);
 
-      //1. Create Firestore doc
+      const parsedTranscript = transcriptText
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .map((line) => {
+          if (line.startsWith("#")) {
+            return {
+              type: "chapter",
+              content: line.replace(/^#\s*/, ""),
+            };
+          }
+
+          if (line.startsWith("[image]")) {
+            return {
+              type: "image",
+              content: line.replace(/^\[image\]\s*/, ""),
+            };
+          }
+
+          return {
+            type: "paragraph",
+            content: line,
+          };
+        });
+
       const docRef = await addDoc(collection(db, "audiobooks"), {
         title: title.trim(),
         intro: intro.trim(),
         narrator: narrator.trim(),
         category: category.trim() || "conflict",
-        transcriptText: transcriptText.trim() || "",
+        transcriptContent: parsedTranscript,
         status: "published",
         uploaderId: user?.uid ?? null,
         createdAt: serverTimestamp(),
@@ -217,20 +237,17 @@ export default function UploadAudiobookAdmin() {
 
       const audiobookId = docRef.id;
 
-      //2. Upload cover to Storage
       const coverBlob = await uriToBlob(coverUri!);
       const coverRef = ref(storage, `audiobooks/${audiobookId}/cover.jpg`);
       await uploadBytes(coverRef, coverBlob);
       const coverUrl = await getDownloadURL(coverRef);
 
-      //3. Upload audio to Storage
       const ext = safeExtFromName(audio?.name) || ".mp3";
       const audioBlob = await uriToBlob(audio!.uri);
       const audioRef = ref(storage, `audiobooks/${audiobookId}/audio${ext}`);
       await uploadBytes(audioRef, audioBlob);
       const audioUrl = await getDownloadURL(audioRef);
 
-      //4. Patch firestore doc with URLs
       await updateDoc(doc(db, "audiobooks", audiobookId), {
         coverUrl,
         audioUrl,
@@ -240,7 +257,6 @@ export default function UploadAudiobookAdmin() {
         { text: "OK", onPress: () => router.replace("/audiobook") },
       ]);
 
-      //reset form
       setTitle("");
       setIntro("");
       setNarrator("");
@@ -287,7 +303,6 @@ export default function UploadAudiobookAdmin() {
 
           <Text style={styles.header}>Upload Audiobook (Admin)</Text>
 
-          {/* spacer so title stays centered */}
           <View style={{ width: 32 }} />
         </View>
 
@@ -328,10 +343,16 @@ export default function UploadAudiobookAdmin() {
         <TextInput
           value={transcriptText}
           onChangeText={setTranscriptText}
-          placeholder="Paste transcript text here (optional)"
+          placeholder={
+            "# Introduction\nParagraph text...\n\n# The full story\nMore paragraph text...\n\n[image] https://example.com/image.jpg"
+          }
           style={[styles.input, styles.transcript]}
           multiline
         />
+        <Text style={styles.note}>
+          Use # for chapter headings. Use [image] followed by an image URL to
+          insert a picture inside the transcript.
+        </Text>
 
         <View style={styles.row}>
           <TouchableOpacity style={styles.actionBtn} onPress={pickCover}>
@@ -475,7 +496,7 @@ const styles = StyleSheet.create({
 
   closeBtn: {
     padding: 4,
-    width: 32, // same width as spacer for perfect centering
+    width: 32,
     alignItems: "flex-start",
   },
   previewRow: {

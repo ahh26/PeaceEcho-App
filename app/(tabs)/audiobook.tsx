@@ -173,7 +173,7 @@ export default function AudiobookScreen() {
               <View style={styles.rowContent}>
                 <View style={styles.topStack}>
                   <View style={styles.rowTop}>
-                    <Text style={styles.rowTitle} numberOfLines={2}>
+                    <Text style={styles.rowTitle} numberOfLines={4}>
                       {title}
                     </Text>
                   </View>
@@ -187,9 +187,12 @@ export default function AudiobookScreen() {
                   )}
 
                   {!!intro && (
-                    <Text style={styles.rowIntro} numberOfLines={3}>
-                      {intro}
-                    </Text>
+                    <View style={styles.introBlock}>
+                      <Text style={styles.introLabel}>About</Text>
+                      <Text style={styles.rowIntro} numberOfLines={2}>
+                        {intro}
+                      </Text>
+                    </View>
                   )}
                 </View>
 
@@ -347,7 +350,7 @@ const styles = StyleSheet.create({
   // Big but not TOO big — keeps the right side readable
   rowCover: {
     width: 150,
-    height: 150,
+    height: 160,
     borderRadius: 16,
     backgroundColor: "#EEE",
   },
@@ -356,10 +359,38 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     justifyContent: "flex-start",
-    paddingBottom: 44,
+    paddingBottom: 48,
     position: "relative",
   },
 
+  rowTitle: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 18,
+    fontWeight: "900",
+    color: THEME.text,
+    lineHeight: 24,
+  },
+
+  introBlock: {
+    marginTop: 10,
+  },
+
+  introLabel: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: THEME.subtle,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+
+  rowIntro: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: THEME.subtext,
+    lineHeight: 19,
+  },
   rowTop: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -367,29 +398,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
-  rowTitle: {
-    flex: 1,
-    minWidth: 0,
-    fontSize: 17,
-    fontWeight: "900",
-    color: THEME.text,
-    lineHeight: 22,
-  },
-
   rowMeta: {
     marginTop: 6,
     fontSize: 12,
     fontWeight: "800",
     color: THEME.subtext,
-  },
-
-  rowIntro: {
-    marginTop: 10,
-    fontSize: 13,
-    fontWeight: "700",
-    color: THEME.text,
-    opacity: 0.85,
-    lineHeight: 18,
   },
 
   rowBottom: {

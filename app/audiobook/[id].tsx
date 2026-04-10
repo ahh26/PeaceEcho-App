@@ -19,6 +19,21 @@ import { db } from "../../firebase";
 
 const THEME = PALETTES.beige;
 
+type TranscriptItem =
+  | { type: "chapter"; content: string }
+  | { type: "image"; content: string }
+  | { type: "paragraph"; content: string };
+
+type AudioBook = {
+  id: string;
+  title: string;
+  coverUrl: string;
+  audioUrl: string;
+  intro?: string;
+  transcriptContent?: TranscriptItem[];
+  transcriptText?: string;
+};
+
 function formatTime(ms: number) {
   if (!ms || ms < 0) return "0:00";
   const totalSec = Math.floor(ms / 1000);
@@ -29,7 +44,9 @@ function formatTime(ms: number) {
 
 export default function AudioBookDetail() {
   const { id } = useLocalSearchParams();
-  const [book, setBook] = useState<any>(null);
+  const [book, setBook] = useState<AudioBook | null>(null);
+  const [expanded, setExpanded] = useState(false);
+
   const {
     current,
     isPlaying,
@@ -47,7 +64,11 @@ export default function AudioBookDetail() {
       try {
         const ref = doc(db, "audiobooks", String(id));
         const snap = await getDoc(ref);
-        if (snap.exists()) setBook({ id: snap.id, ...snap.data() });
+
+        if (snap.exists()) {
+          const data = snap.data() as Omit<AudioBook, "id">;
+          setBook({ id: snap.id, ...data });
+        }
       } catch (e) {
         console.log("load audiobook error:", e);
       }
@@ -67,7 +88,7 @@ export default function AudioBookDetail() {
   const [barWidth, setBarWidth] = useState(0);
   const [isScrubbing, setIsScrubbing] = useState(false);
 
-  const scrubXAnim = useRef(new Animated.Value(0)).current; //for scrubbing
+  const scrubXAnim = useRef(new Animated.Value(0)).current;
 
   const playbackWidth =
     barWidth && effectiveDur ? (effectivePos / effectiveDur) * barWidth : 0;
@@ -94,7 +115,10 @@ export default function AudioBookDetail() {
 
   const displayedPos = useMemo(() => {
     if (!isScrubbing) return effectivePos;
-    const x = (scrubXAnim as any).__getValue?.() ?? 0;
+    const x =
+      (
+        scrubXAnim as Animated.Value & { __getValue?: () => number }
+      ).__getValue?.() ?? 0;
     return xToMs(x);
   }, [isScrubbing, effectivePos, barWidth, effectiveDur]);
 
@@ -124,19 +148,25 @@ export default function AudioBookDetail() {
 
         onPanResponderRelease: async () => {
           if (!isThis || !effectiveDur) return;
-          const x = (scrubXAnim as any).__getValue?.() ?? 0;
+          const x =
+            (
+              scrubXAnim as Animated.Value & { __getValue?: () => number }
+            ).__getValue?.() ?? 0;
           await seekTo(xToMs(x));
           setIsScrubbing(false);
         },
 
         onPanResponderTerminate: async () => {
           if (!isThis || !effectiveDur) return;
-          const x = (scrubXAnim as any).__getValue?.() ?? 0;
+          const x =
+            (
+              scrubXAnim as Animated.Value & { __getValue?: () => number }
+            ).__getValue?.() ?? 0;
           await seekTo(xToMs(x));
           setIsScrubbing(false);
         },
       }),
-    [isThis, effectiveDur, seekTo],
+    [isThis, effectiveDur, seekTo, playbackWidth, scrubXAnim],
   );
 
   const onPressPlay = async () => {
@@ -168,39 +198,55 @@ export default function AudioBookDetail() {
   if (!book) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={{ padding: 16 }}>
-          <Text style={{ fontWeight: "700" }}>Loading…</Text>
+        <View style={styles.loadingWrap}>
+          <Text style={styles.loadingText}>Loading…</Text>
         </View>
       </SafeAreaView>
     );
   }
+
+  const transcriptItems: TranscriptItem[] | null =
+    book.transcriptContent && book.transcriptContent.length > 0
+      ? book.transcriptContent
+      : book.transcriptText
+        ? book.transcriptText
+            .split("\n")
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0)
+            .map(
+              (line): TranscriptItem => ({
+                type: line.startsWith("#") ? "chapter" : "paragraph",
+                content: line.replace(/^#\s*/, ""),
+              }),
+            )
+        : null;
+
+  const previewItems = transcriptItems?.slice(0, 4) ?? [];
+  const previewText = previewItems.map((item) => item.content).join("\n\n");
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView
         contentContainerStyle={styles.container}
         scrollEnabled={!isScrubbing}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Top Bar */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-forward" size={28} color="#4D5161" />
+            <Ionicons name="chevron-back" size={28} color="#4D5161" />
           </TouchableOpacity>
           <Text style={styles.topTitle}>Listening Now</Text>
           <View style={{ width: 28 }} />
         </View>
 
-        {/* Cover */}
         <View style={styles.coverWrap}>
           <Image source={{ uri: book.coverUrl }} style={styles.cover} />
         </View>
 
-        {/* Player area (squeezed) */}
         <View style={styles.playerArea}>
           <Text style={styles.title}>{book.title}</Text>
           {!!book.intro && <Text style={styles.intro}>{book.intro}</Text>}
 
-          {/* Progress */}
           <View
             ref={barRef}
             onLayout={measureBar}
@@ -241,7 +287,6 @@ export default function AudioBookDetail() {
             <Text style={styles.time}>{formatTime(effectiveDur)}</Text>
           </View>
 
-          {/* Controls */}
           <View style={styles.controls}>
             <TouchableOpacity onPress={() => jumpBy(-15000)}>
               <Ionicons name="play-back" size={28} color="#495666" />
@@ -261,16 +306,60 @@ export default function AudioBookDetail() {
           </View>
         </View>
 
-        {/* Transcript block */}
         <View style={styles.transcriptBlock}>
-          <Text style={styles.transcriptTitle}>Transcript</Text>
+          <View style={styles.transcriptHeader}>
+            <View>
+              <Text style={styles.transcriptEyebrow}>Story</Text>
+              <Text style={styles.transcriptTitle}>Transcript</Text>
+            </View>
 
-          {book.transcriptText ? (
-            <Text style={styles.transcript}>{book.transcriptText}</Text>
+            {!!transcriptItems?.length && (
+              <TouchableOpacity onPress={() => setExpanded((prev) => !prev)}>
+                <Text style={styles.showMore}>
+                  {expanded ? "Show less" : "Show more"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {!transcriptItems || transcriptItems.length === 0 ? (
+            <Text style={styles.noTranscript}>No transcript available.</Text>
+          ) : expanded ? (
+            transcriptItems.map((item, index) => {
+              if (item.type === "chapter") {
+                return (
+                  <View key={index} style={styles.chapterWrap}>
+                    {index !== 0 && <View style={styles.chapterDivider} />}
+                    <Text style={styles.chapterHeading}>{item.content}</Text>
+                  </View>
+                );
+              }
+
+              if (item.type === "image") {
+                return (
+                  <Image
+                    key={index}
+                    source={{ uri: item.content }}
+                    style={styles.transcriptImage}
+                    resizeMode="cover"
+                  />
+                );
+              }
+
+              return (
+                <Text key={index} style={styles.transcriptParagraph}>
+                  {item.content}
+                </Text>
+              );
+            })
           ) : (
-            <Text style={styles.noTranscript}>
-              No transcript available currently.
-            </Text>
+            <>
+              <Text style={styles.transcriptPreview}>{previewText}</Text>
+              <View style={styles.fadeDivider} />
+              <Text style={styles.previewHint}>
+                Tap “Show more” to read the full story
+              </Text>
+            </>
           )}
         </View>
       </ScrollView>
@@ -284,9 +373,12 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.bg,
   },
 
-  content: {
-    marginTop: 18,
-    paddingHorizontal: 6,
+  loadingWrap: {
+    padding: 16,
+  },
+
+  loadingText: {
+    fontWeight: "700",
   },
 
   container: {
@@ -314,8 +406,8 @@ const styles = StyleSheet.create({
   cover: {
     width: 350,
     height: 350,
-    borderRadius: 12,
-    backgroundColor: THEME.accentSoft, // helps while loading
+    borderRadius: 14,
+    backgroundColor: THEME.accentSoft,
   },
 
   playerArea: {
@@ -332,13 +424,13 @@ const styles = StyleSheet.create({
 
   intro: {
     color: THEME.subtext,
-    opacity: 0.85,
+    opacity: 0.88,
     marginTop: 8,
-    lineHeight: 19,
+    lineHeight: 21,
   },
 
   progressOuter: {
-    marginTop: 16,
+    marginTop: 18,
     height: 20,
     justifyContent: "center",
   },
@@ -399,37 +491,110 @@ const styles = StyleSheet.create({
   },
 
   transcriptBlock: {
-    marginTop: 40,
-    padding: 16,
-    borderRadius: 16,
+    marginTop: 38,
+    paddingHorizontal: 18,
+    paddingVertical: 20,
+    borderRadius: 20,
     backgroundColor: THEME.card,
     borderWidth: 1,
     borderColor: THEME.border,
     shadowColor: THEME.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.7,
+    shadowRadius: 10,
     elevation: 2,
+  },
+
+  transcriptHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 14,
+  },
+
+  transcriptEyebrow: {
+    color: THEME.subtle,
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 4,
   },
 
   transcriptTitle: {
     color: THEME.text,
     fontWeight: "800",
-    fontSize: 18,
+    fontSize: 20,
   },
 
-  transcript: {
-    color: THEME.text,
-    opacity: 0.88,
-    marginTop: 10,
-    lineHeight: 22,
+  showMore: {
+    color: THEME.accent,
+    fontWeight: "700",
+    marginTop: 4,
   },
 
   noTranscript: {
-    marginTop: 10,
+    marginTop: 8,
     color: THEME.subtext,
-    opacity: 0.85,
+    opacity: 0.9,
     fontWeight: "700",
     lineHeight: 20,
+  },
+
+  transcriptPreview: {
+    fontSize: 16,
+    lineHeight: 28,
+    color: THEME.text,
+    opacity: 0.92,
+  },
+
+  previewHint: {
+    marginTop: 10,
+    fontSize: 13,
+    color: THEME.subtext,
+    opacity: 0.85,
+  },
+
+  fadeDivider: {
+    height: 1,
+    backgroundColor: THEME.border,
+    marginTop: 16,
+    opacity: 0.7,
+  },
+
+  chapterWrap: {
+    marginTop: 6,
+  },
+
+  chapterDivider: {
+    height: 1,
+    backgroundColor: THEME.border,
+    marginTop: 18,
+    marginBottom: 16,
+    opacity: 0.7,
+  },
+
+  chapterHeading: {
+    fontSize: 21,
+    fontWeight: "800",
+    color: THEME.text,
+    lineHeight: 28,
+    marginBottom: 10,
+  },
+
+  transcriptParagraph: {
+    fontSize: 16,
+    lineHeight: 28,
+    marginBottom: 16,
+    color: THEME.text,
+    opacity: 0.92,
+  },
+
+  transcriptImage: {
+    width: "100%",
+    height: 220,
+    borderRadius: 12,
+    marginVertical: 18,
+    backgroundColor: "#eee",
   },
 });

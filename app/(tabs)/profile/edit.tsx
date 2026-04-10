@@ -648,7 +648,7 @@ export default function ProfileEdit() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  container: { flex: 1, padding: 24, backgroundColor: "#fff" },
+  container: { flex: 1, padding: 24, backgroundColor: THEME.bg },
   scrollContent: { paddingBottom: 40 },
 
   avatarContainer: { alignItems: "center", marginBottom: 24 },
