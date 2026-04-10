@@ -155,7 +155,10 @@ function CommentRow({
         </View>
 
         {/* Comment text */}
-        <Text style={{ marginTop: 4, lineHeight: 18, color: "#111" }}>
+        <Text
+          style={{ marginTop: 4, lineHeight: 18, color: "#111" }}
+          selectable
+        >
           {text}
         </Text>
       </View>
@@ -681,6 +684,7 @@ export default function PostDetail() {
                 marginTop: 12,
                 lineHeight: 20,
               }}
+              selectable
             >
               {post.caption}
             </Text>

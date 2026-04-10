@@ -42,6 +42,17 @@ function formatTime(ms: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function cleanText(text: string) {
+  return text
+    .replace(/\r/g, "")
+    .replace(/\u2028|\u2029/g, "\n")
+    .replace(/\u00A0/g, " ")
+    .replace(/\u200B|\u200C|\u200D|\uFEFF/g, "")
+    .replace(/\n+/g, " ")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
 export default function AudioBookDetail() {
   const { id } = useLocalSearchParams();
   const [book, setBook] = useState<AudioBook | null>(null);
@@ -321,7 +332,6 @@ export default function AudioBookDetail() {
               </TouchableOpacity>
             )}
           </View>
-
           {!transcriptItems || transcriptItems.length === 0 ? (
             <Text style={styles.noTranscript}>No transcript available.</Text>
           ) : expanded ? (
@@ -347,14 +357,16 @@ export default function AudioBookDetail() {
               }
 
               return (
-                <Text key={index} style={styles.transcriptParagraph}>
-                  {item.content}
-                </Text>
+                <View key={index} style={styles.paragraphWrap}>
+                  <Text style={styles.transcriptParagraph}>{item.content}</Text>
+                </View>
               );
             })
           ) : (
             <>
-              <Text style={styles.transcriptPreview}>{previewText}</Text>
+              <View style={styles.paragraphWrap}>
+                <Text style={styles.transcriptPreview}>{previewText}</Text>
+              </View>
               <View style={styles.fadeDivider} />
               <Text style={styles.previewHint}>
                 Tap “Show more” to read the full story
@@ -541,13 +553,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  transcriptPreview: {
-    fontSize: 16,
-    lineHeight: 28,
-    color: THEME.text,
-    opacity: 0.92,
-  },
-
   previewHint: {
     marginTop: 10,
     fontSize: 13,
@@ -574,27 +579,37 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 
-  chapterHeading: {
-    fontSize: 21,
-    fontWeight: "800",
-    color: THEME.text,
-    lineHeight: 28,
-    marginBottom: 10,
-  },
-
-  transcriptParagraph: {
-    fontSize: 16,
-    lineHeight: 28,
-    marginBottom: 16,
-    color: THEME.text,
-    opacity: 0.92,
-  },
-
   transcriptImage: {
     width: "100%",
     height: 220,
     borderRadius: 12,
     marginVertical: 18,
     backgroundColor: "#eee",
+  },
+
+  chapterHeading: {
+    fontSize: 21,
+    fontWeight: "800",
+    color: THEME.text,
+    lineHeight: 26,
+    marginBottom: 10,
+  },
+
+  paragraphWrap: {
+    marginBottom: 14,
+  },
+
+  transcriptParagraph: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: THEME.text,
+    includeFontPadding: false,
+  },
+
+  transcriptPreview: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: THEME.text,
+    includeFontPadding: false,
   },
 });
