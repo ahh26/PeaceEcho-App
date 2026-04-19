@@ -174,7 +174,6 @@ export default function UploadAudiobookAdmin() {
         await previewRef.current.playAsync();
       }
     } catch (e) {
-      console.log("Preview audio error:", e);
       Alert.alert("Preview failed", "Could not play this audio file.");
     }
   };
