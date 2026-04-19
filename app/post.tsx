@@ -388,6 +388,8 @@ export default function PostDetail() {
   const isOwner = auth.currentUser?.uid && post?.uid === auth.currentUser.uid;
 
   const onDeletePost = async () => {
+    console.log("onDeletePost opened for post:", id);
+
     if (!id) return;
     const user = auth.currentUser;
     if (!user) return;
@@ -401,6 +403,7 @@ export default function PostDetail() {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
+            console.log("DELETE CONFIRMED for post:", id, "user:", user.uid);
             try {
               await runTransaction(db, async (tx) => {
                 const postRef = doc(db, "posts", String(id));
