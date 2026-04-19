@@ -580,7 +580,6 @@ export default function PostDetail() {
               tx.update(postRef, { commentCount: increment(-1) });
             });
           } catch (e) {
-            console.log("delete comment failed:", e);
             Alert.alert("Delete failed", "Please try again.");
           }
         },
