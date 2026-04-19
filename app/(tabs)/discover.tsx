@@ -87,33 +87,23 @@ export default function DiscoverScreen() {
     const unsub = onSnapshot(
       q,
       (snap) => {
-        console.log("posts snapshot size:", snap.size);
+        const data = snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        }));
 
-        snap.docs.forEach((d) => {
-          console.log("post id:", d.id);
-          console.log("post path:", d.ref.path);
-          console.log("post data:", d.data());
-        });
-
-        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         setPosts(data);
         setLoading(false);
       },
       (error) => {
-        console.log("posts snapshot error:", error);
+        console.error("posts snapshot error:", error);
         setLoading(false);
       },
     );
-
     const checkMissingPost = async () => {
       const missingPostId = "6KbZTVjcJXG5dw3nZRvT";
       const ref = doc(db, "posts", missingPostId);
-
-      console.log("checking missing post path:", ref.path);
-
       const snap = await getDoc(ref);
-      console.log("missing post exists:", snap.exists());
-      console.log("missing post data:", snap.data());
     };
 
     checkMissingPost();

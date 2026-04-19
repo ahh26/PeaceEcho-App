@@ -212,7 +212,7 @@ function ImageCarousel({ imageUrls }: { imageUrls?: string[] }) {
             source={{ uri: item }}
             style={{
               width: SCREEN_W - 40,
-              height: 320,
+              height: SCREEN_W - 40,
               borderRadius: 12,
               backgroundColor: "#eee",
             }}
@@ -388,8 +388,6 @@ export default function PostDetail() {
   const isOwner = auth.currentUser?.uid && post?.uid === auth.currentUser.uid;
 
   const onDeletePost = async () => {
-    console.log("onDeletePost opened for post:", id);
-
     if (!id) return;
     const user = auth.currentUser;
     if (!user) return;
@@ -403,7 +401,6 @@ export default function PostDetail() {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            console.log("DELETE CONFIRMED for post:", id, "user:", user.uid);
             try {
               await runTransaction(db, async (tx) => {
                 const postRef = doc(db, "posts", String(id));
@@ -430,7 +427,6 @@ export default function PostDetail() {
 
               router.back();
             } catch (e) {
-              console.log("Delete failed:", e);
               Alert.alert("Delete failed", "Please try again.");
             }
           },
