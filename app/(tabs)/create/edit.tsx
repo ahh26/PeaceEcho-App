@@ -31,6 +31,12 @@ import { getUserProfile } from "../../../lib/userProfile";
 
 const THEME = PALETTES.beige;
 
+function removeUndefined(obj: any) {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, value]) => value !== undefined),
+  );
+}
+
 async function uriToBlob(uri: string): Promise<Blob> {
   return await new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -88,7 +94,6 @@ function PhotosStrip({
           );
         })}
 
-        {/* Add tile at the end */}
         <TouchableOpacity
           disabled={disabled}
           onPress={onAdd}
@@ -150,7 +155,6 @@ const ps = StyleSheet.create({
   addLabel: { marginTop: 6, fontSize: 12, fontWeight: "900", color: "#374151" },
 });
 
-// ---------- Screen ----------
 export default function EditPostScreen() {
   const params = useLocalSearchParams();
 
@@ -165,7 +169,6 @@ export default function EditPostScreen() {
     reflection_categories[0]?.id ?? "growth",
   );
 
-  // whether user changed category in this screen
   const [categoryOverridden, setCategoryOverridden] = useState(false);
 
   useEffect(() => {
@@ -207,7 +210,6 @@ export default function EditPostScreen() {
     load();
   }, []);
 
-  // parse initial images from params (your existing logic but memoized)
   const initialImages = useMemo(() => {
     let out: string[] = [];
     if (!params.images) return out;
@@ -229,13 +231,11 @@ export default function EditPostScreen() {
   }, [params.images]);
 
   useEffect(() => {
-    // only set once when screen loads
     if (initialImages.length > 0 && images.length === 0) {
       setImages(initialImages);
     }
   }, [initialImages, images.length]);
 
-  //state list
   const states = useMemo(() => {
     const cc = postLocation?.countryCode;
     if (!cc) return [];
@@ -269,7 +269,7 @@ export default function EditPostScreen() {
 
   const removePhotoAt = (idx: number) => {
     setImages((prev) => {
-      if (prev.length <= 1) return prev; // enforce rule
+      if (prev.length <= 1) return prev;
       return prev.filter((_, i) => i !== idx);
     });
   };
@@ -317,17 +317,37 @@ export default function EditPostScreen() {
 
       const batch = writeBatch(db);
       const postRef = doc(collection(db, "posts"));
-      batch.set(postRef, {
+
+      const safeUsername =
+        userProfile?.username ||
+        user.displayName ||
+        user.email?.split("@")[0] ||
+        "Anonymous";
+
+      const cleanPostLocation = hasPostLocation
+        ? removeUndefined({
+            countryCode: postLocation?.countryCode || "",
+            country: postLocation?.country || "",
+            stateCode: postLocation?.stateCode || "",
+            stateName: postLocation?.stateName || "",
+            city: postLocation?.city || "",
+            source: postLocation?.source || "manual",
+          })
+        : null;
+
+      const postData = removeUndefined({
         uid: user.uid,
         caption: caption.trim(),
         imageUrls: uploadedUrls,
         createdAt: serverTimestamp(),
-        username: userProfile?.username || "Anonymous",
-        displayName: userProfile?.displayName,
-        userPhotoURL: userProfile?.photoURL || null,
+        username: safeUsername,
+        displayName: safeUsername,
+        userPhotoURL: userProfile?.photoURL || user.photoURL || null,
         reflectionCategory: activeCategoryId || "growth",
-        ...(hasPostLocation ? { postLocation } : {}),
+        ...(cleanPostLocation ? { postLocation: cleanPostLocation } : {}),
       });
+
+      batch.set(postRef, postData);
 
       const userRef = doc(db, "users", user.uid);
       batch.update(userRef, { postCount: increment(1) });
@@ -336,9 +356,12 @@ export default function EditPostScreen() {
 
       router.replace("/(tabs)/discover");
     } catch (error: any) {
-      console.log("FULL STORAGE ERROR >>>", JSON.stringify(error, null, 2));
-      if (error?.serverResponse)
+      console.log("FULL ERROR >>>", error);
+      console.log("ERROR CODE >>>", error?.code);
+      console.log("ERROR MESSAGE >>>", error?.message);
+      if (error?.serverResponse) {
         console.log("SERVER RESPONSE >>>", error.serverResponse);
+      }
       Alert.alert(
         "Upload failed",
         error?.message ? String(error.message) : "Unknown error",
@@ -350,12 +373,8 @@ export default function EditPostScreen() {
 
   const canPost = !busy && images.length > 0;
 
-  {
-    /*-----UI------*/
-  }
   return (
     <SafeAreaView style={styles.screen}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={cancelEditing}
@@ -387,7 +406,6 @@ export default function EditPostScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Reflection Category card */}
         <View style={styles.card}>
           <View
             style={{
@@ -425,7 +443,6 @@ export default function EditPostScreen() {
           </Text>
         </View>
 
-        {/* Category Modal */}
         <Modal visible={categoryVisible} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
             <View style={styles.modalCard}>
@@ -465,7 +482,6 @@ export default function EditPostScreen() {
           </View>
         </Modal>
 
-        {/* Photos card */}
         <View style={styles.card}>
           <View style={styles.cardTopRow}>
             <Text style={styles.cardTitle}>Photos</Text>
@@ -488,7 +504,6 @@ export default function EditPostScreen() {
           )}
         </View>
 
-        {/* Caption card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Caption</Text>
           <TextInput
@@ -502,7 +517,6 @@ export default function EditPostScreen() {
           />
         </View>
 
-        {/*Location selector */}
         <View style={styles.card}>
           <View
             style={{ flexDirection: "row", justifyContent: "space-between" }}
@@ -556,7 +570,6 @@ export default function EditPostScreen() {
 
           {locationEnabled && (
             <>
-              {/* Preview text */}
               <Text style={{ marginTop: 8, fontSize: 13, color: "#374151" }}>
                 {postLocation
                   ? [
@@ -569,9 +582,7 @@ export default function EditPostScreen() {
                   : "No location selected"}
               </Text>
 
-              {/* Manual controls */}
               <View style={{ marginTop: 12 }}>
-                {/* Country */}
                 <Text style={styles.smallLabel}>Country</Text>
                 <TouchableOpacity
                   style={styles.countryInput}
@@ -618,7 +629,6 @@ export default function EditPostScreen() {
                   </View>
                 </TouchableOpacity>
 
-                {/* State / Province */}
                 <Text style={styles.smallLabel}>State / Province</Text>
                 <TouchableOpacity
                   style={[
@@ -639,7 +649,6 @@ export default function EditPostScreen() {
                   </Text>
                 </TouchableOpacity>
 
-                {/* City */}
                 <Text style={styles.smallLabel}>City</Text>
                 <TextInput
                   style={styles.input}
@@ -659,7 +668,6 @@ export default function EditPostScreen() {
           )}
         </View>
 
-        {/* Loading hint */}
         {posting && (
           <View style={styles.postingRow}>
             <ActivityIndicator />

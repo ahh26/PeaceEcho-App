@@ -51,6 +51,14 @@ export default function AudiobookScreen() {
     const unsub = onSnapshot(
       q,
       (snap) => {
+        console.log("audiobooks size:", snap.size);
+
+        snap.docs.forEach((d) => {
+          console.log("audiobook id:", d.id);
+          console.log("title:", d.data().title);
+          console.log("data:", d.data());
+        });
+
         const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         setBooks(items);
         setLoading(false);
