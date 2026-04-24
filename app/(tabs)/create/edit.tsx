@@ -343,6 +343,7 @@ export default function EditPostScreen() {
         username: safeUsername,
         displayName: safeUsername,
         userPhotoURL: userProfile?.photoURL || user.photoURL || null,
+        status: "active",
         reflectionCategory: activeCategoryId || "growth",
         ...(cleanPostLocation ? { postLocation: cleanPostLocation } : {}),
       });

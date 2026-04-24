@@ -55,8 +55,6 @@ export default function AudiobookScreen() {
 
         snap.docs.forEach((d) => {
           console.log("audiobook id:", d.id);
-          console.log("title:", d.data().title);
-          console.log("data:", d.data());
         });
 
         const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));

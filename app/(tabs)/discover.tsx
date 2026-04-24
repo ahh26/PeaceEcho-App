@@ -8,6 +8,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  where,
 } from "firebase/firestore";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -83,7 +84,11 @@ export default function DiscoverScreen() {
     }
 
     setLoading(true);
-    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    const q = query(
+      collection(db, "posts"),
+      where("status", "==", "active"),
+      orderBy("createdAt", "desc"),
+    );
     const unsub = onSnapshot(
       q,
       (snap) => {

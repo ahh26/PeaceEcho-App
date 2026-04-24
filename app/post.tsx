@@ -419,7 +419,11 @@ export default function PostDetail() {
                 const userSnap = await tx.get(userRef);
                 const currentCount = userSnap.data()?.postCount ?? 0;
 
-                tx.delete(postRef);
+                tx.update(postRef, {
+                  status: "deleted",
+                  deletedAt: serverTimestamp(),
+                  deletedBy: user.uid,
+                });
                 tx.update(userRef, {
                   postCount: Math.max(currentCount - 1, 0),
                 });
